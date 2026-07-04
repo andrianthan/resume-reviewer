@@ -1,39 +1,114 @@
 # resume-reviewer
 
-Discord bot that scores resumes against major-specific rubrics.
+Discord bot that scores resumes against major-specific rubrics. Click a button → bot DMs → upload PDF → pick major + year → scored embed back.
 
-**Status:** scaffolding only. Rubric packs live, evaluator not yet implemented.
+**Status:** code complete, tested, ready to deploy. Needs Discord bot token + Gemini key + a channel to test in.
+
+## Flow
+
+1. Bot posts a persistent embed with **Review my resume** button in your chosen channel.
+2. Member clicks → bot DMs them: "Upload your PDF resume".
+3. Member uploads PDF (max 5 MB).
+4. Bot asks for major (consulting / marketing / ops-hr / supply-chain).
+5. Bot asks for class year (freshman / sophomore / junior / senior / grad).
+6. Bot runs evaluator + posts scored embed to DM with per-category evidence + suggestions.
+7. Resume bytes zeroed in memory immediately after review.
+
+## Setup
+
+```bash
+cd ~/projects/resume-reviewer
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Fill .env with your tokens (see below)
+```
+
+### Required credentials
+
+| Variable              | Where to get it                                                                 |
+| --------------------- | ------------------------------------------------------------------------------- |
+| `DISCORD_BOT_TOKEN`   | https://discord.com/developers/applications → New App → Bot → Reset Token       |
+| `REVIEW_CHANNEL_ID`   | Discord → enable Developer Mode → right-click channel → Copy ID                |
+| `GEMINI_API_KEY`      | https://aistudio.google.com/apikey (optional — deterministic mode if unset)     |
+
+### Discord bot setup (one-time, in dev portal)
+
+1. **New Application** → name it `AKPsi Resume Reviewer`.
+2. **Bot** tab → reset token → copy into `.env`.
+3. **OAuth2 → URL Generator**:
+   - Scopes: `bot`, `applications.commands`
+   - Bot Permissions: `Send Messages`, `Embed Links`, `Attach Files`, `Read Message History`, `Use Slash Commands` (slash not strictly required — button-only flow works without).
+4. Open the generated URL → invite to your AKPsi server.
+5. Enable **Message Content Intent** + **Server Members Intent** in Bot tab.
+
+### Create the test channel (manual, one-time)
+
+In your AKPsi Discord:
+
+1. Right-click the parent category (e.g. `#akpsi-officers` or `#resources`) → **Create Channel**.
+2. Name: `#resume-review-bot` (or whatever).
+3. Privacy: **Private** — visible only to officers / bot testers.
+4. Right-click the new channel → **Copy Channel ID** → paste into `REVIEW_CHANNEL_ID` in `.env`.
+
+### Run
+
+```bash
+source .venv/bin/activate
+python -m src.bot
+```
+
+Bot logs in, posts the panel embed in your channel. Click button to test the flow.
+
+## Tests
+
+```bash
+source .venv/bin/activate
+python -m pytest tests/ -v
+```
+
+5 tests cover rubric loading, skill extraction, and deterministic evaluation across all 4 majors.
+
+## Rubric packs
+
+| Major        | File                            | Source                                       |
+| ------------ | ------------------------------- | -------------------------------------------- |
+| consulting   | `rubrics/consulting.json`       | Synthesized from Reddit + JD research        |
+| marketing    | `rubrics/marketing.json`        | Synthesized from Reddit + JD research        |
+| ops-hr       | `rubrics/ops-hr.json`           | Synthesized from Reddit + JD research        |
+| supply-chain | `rubrics/supply-chain.json`     | Synthesized from Reddit + JD research        |
+
+**Caveat:** rubric data built from documented recruiting consensus (Reddit blocked during research). Re-derive from live JDs before production. See `SCHEMA.md` → "Sourcing caveat".
 
 ## Layout
 
 ```
-SCHEMA.md         — Pydantic schema + scoring formula (design doc)
-rubrics/          — one JSON per major (consulting, marketing, ops-hr, supply-chain)
-src/              — (TBD) evaluator.py + Discord bot
-tests/            — (TBD)
+src/
+  __init__.py
+  bot.py            # Discord client + button/DM flow
+  evaluator.py      # PDF→text, skill match, domain/year adjust, scoring
+  pdf_extract.py    # PyMuPDF wrapper
+  llm_judge.py      # Gemini per-category judge (optional)
+  rubric_loader.py  # Load rubric JSON → Pydantic
+  state.py          # Per-user conversation state machine
+  models.py         # Pydantic models matching SCHEMA.md
+tests/
+  test_evaluator.py
+rubrics/
+  consulting.json
+  marketing.json
+  ops-hr.json
+  supply-chain.json
+SCHEMA.md           # Pydantic schema + scoring formula
+requirements.txt
+.env.example
 ```
-
-## Rubric packs
-
-| Major          | File                            | Source notes                              |
-| -------------- | ------------------------------- | ----------------------------------------- |
-| finance        | (see SCHEMA.md example)         | Hand-crafted v1 in parent project.        |
-| consulting     | `rubrics/consulting.json`       | Synthesized from `research/rubric-sources/consulting.json` |
-| marketing      | `rubrics/marketing.json`        | Synthesized from `research/rubric-sources/marketing.json`  |
-| ops-hr         | `rubrics/ops-hr.json`           | Synthesized from `research/rubric-sources/ops-hr.json`     |
-| supply-chain   | `rubrics/supply-chain.json`     | Synthesized from `research/rubric-sources/supply-chain.json` |
-
-**Data caveat:** research JSONs built from documented recruiting consensus (WebSearch returned 400 + Reddit blocked during research). Re-derive frequencies from live JD pulls before production scoring — see SCHEMA.md "Sourcing caveat".
 
 ## Next steps
 
-1. Implement `src/evaluator.py` per SCHEMA.md pseudo-code.
-2. Wire Discord bot (`/resume-review major:<key> year:<year>`).
-3. Decide LLM backend (Gemini vs Ollama).
-4. Smoke-test against 5 sample resumes across majors.
-5. Manual upstream PR if going external.
-
-## Related
-
-- Parent project: `job-board-aggregator/` — sibling under `~/projects/`.
-- ApplyPilot-fork pattern reference: `~/projects/ApplyPilot-fork/`.
+1. Drop your `DISCORD_BOT_TOKEN` + `REVIEW_CHANNEL_ID` into `.env`.
+2. Add `GEMINI_API_KEY` for real LLM-scored categories (else deterministic stub).
+3. `python -m src.bot` → test the flow end-to-end.
+4. Re-run rubric research when WebFetch works to swap consensus data for live frequencies.
+5. Manual upstream PR if you ever fork this externally.
