@@ -456,13 +456,22 @@ def make_client() -> discord.Client:
 
 
 def main() -> None:
+    import sys
+
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        stream=sys.stdout,
+        force=True,
     )
+    log.info("bot starting; pid=%s", os.getpid())
     if not DISCORD_TOKEN:
         raise RuntimeError("DISCORD_BOT_TOKEN not set. See .env.example.")
     client = make_client()
+    log.info("client built, starting bot.run()")
     client.run(DISCORD_TOKEN, log_handler=None)
 
 
