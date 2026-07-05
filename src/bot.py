@@ -213,14 +213,29 @@ async def _begin_thread_flow(interaction: Interaction) -> None:
             description=(
                 "Drop your **PDF** resume here (max 5 MB).\n"
                 "After upload, you'll pick your major and get a scored review.\n\n"
-                "🔒 Your resume is processed in-memory and discarded after the review."
+                "🔒 Your resume is processed in-memory and discarded after the review.\n"
+                "⏰ **This thread auto-deletes in 1 hour.** Save anything you want to keep."
             ),
             color=EMBED_COLOR_PRIMARY,
         )
     )
 
+    # Schedule auto-deletion after 1 hour. Discord doesn't have native
+    # delete-after-time, so we archive + delete via a delayed background task.
+    async def _auto_delete(tid: int) -> None:
+        try:
+            await asyncio.sleep(3600)  # 1 hour
+            chan = _get_client().get_channel(tid)
+            if isinstance(chan, discord.Thread):
+                await chan.delete(reason="Resume review thread auto-cleanup (1h)")
+                log.info("auto-deleted thread %s", tid)
+        except Exception as e:  # noqa: BLE001
+            log.warning("auto-delete failed for thread %s: %r", tid, e)
+
+    asyncio.create_task(_auto_delete(thread.id))
+
     await interaction.followup.send(
-        f"🧵 Started a private thread: {thread.jump_url}",
+        f"🧵 Started a private thread: {thread.jump_url} _(auto-deletes in 1h)_",
         ephemeral=True,
     )
 
