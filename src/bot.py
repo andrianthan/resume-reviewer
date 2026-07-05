@@ -331,13 +331,18 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
             )
             review = _review_from_dict(review_data)
         else:
-            # Local fallback — deterministic unless GEMINI_API_KEY is set
+            # Local fallback — deterministic unless OPENROUTER_API_KEY
+            # (or legacy GEMINI_API_KEY) is set.
+            use_llm = bool(
+                os.environ.get("OPENROUTER_API_KEY")
+                or os.environ.get("GEMINI_API_KEY")
+            )
             review = await asyncio.to_thread(
                 evaluate,
                 sess.resume_bytes,
                 sess.major,
                 sess.class_year,
-                use_llm=bool(os.environ.get("GEMINI_API_KEY")),
+                use_llm=use_llm,
             )
     except Exception as e:  # noqa: BLE001
         log.exception("evaluate failed")
