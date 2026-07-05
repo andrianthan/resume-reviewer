@@ -179,6 +179,13 @@ async def _begin_dm_flow(interaction: Interaction) -> None:
 
 async def _on_dm_message(message: discord.Message) -> None:
     """Handle PDF uploads + free-text in DM."""
+    log.info(
+        "DM msg from %s (%s): stage=%s attachments=%d",
+        message.author,
+        message.author.id,
+        message.client._store.get(message.author.id).stage,  # type: ignore[attr-defined]
+        len(message.attachments),
+    )
     if message.author.bot:
         return
     if message.guild is not None:
@@ -186,6 +193,17 @@ async def _on_dm_message(message: discord.Message) -> None:
 
     sess = message.client._store.get(message.author.id)  # type: ignore[attr-defined]
     if sess.stage != Stage.AWAITING_RESUME:
+        # If they sent a PDF while not in the right state, give them a hint
+        if message.attachments:
+            await message.channel.send(
+                embed=discord.Embed(
+                    description=(
+                        "I got your file, but I'm not in upload mode. "
+                        "Click **Review my resume** in #resume-review-bot to start."
+                    ),
+                    color=EMBED_COLOR_WARN,
+                )
+            )
         return
 
     if not message.attachments:
