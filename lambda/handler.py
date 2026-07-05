@@ -19,6 +19,7 @@ Response:
 """
 from __future__ import annotations
 
+import io
 import json
 import os
 import re
@@ -33,9 +34,9 @@ except ImportError as e:
     raise RuntimeError("boto3 missing in Lambda package") from e
 
 try:
-    import fitz  # type: ignore  # PyMuPDF
+    from pypdf import PdfReader
 except ImportError as e:
-    raise RuntimeError("PyMuPDF missing in Lambda package") from e
+    raise RuntimeError("pypdf missing in Lambda package") from e
 
 # --- Rubric loader: inline to avoid package path issues ---
 
