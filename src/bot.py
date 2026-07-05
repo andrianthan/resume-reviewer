@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import json
 import logging
 import os
 from pathlib import Path
@@ -337,7 +338,12 @@ def _review_from_dict(d: dict) -> "Review":  # type: ignore[name-defined]
     )
 
 async def _post_panel(bot: discord.Client, channel_id: int) -> None:
-    """Post (or edit) the persistent review panel in the configured channel."""
+    """Post the persistent review panel — ONCE per channel, then edit-in-place.
+
+    Stores the panel message_id in `data/panel_state.json`. On reconnect
+    (on_ready re-fires when Discord gateway resumes), edits the existing
+    message instead of posting a new one — prevents panel spam every ~4 min.
+    """
     if not channel_id:
         log.warning("REVIEW_CHANNEL_ID not set; skipping panel post.")
         return
@@ -357,8 +363,31 @@ async def _post_panel(bot: discord.Client, channel_id: int) -> None:
         ),
         color=EMBED_COLOR_PRIMARY,
     )
-    await channel.send(embed=embed, view=StartReviewView())
-    log.info("Posted resume review panel in #%s", channel)
+    view = StartReviewView()
+
+    state_path = Path(__file__).resolve().parent.parent / "data" / "panel_state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state: dict = {}
+    if state_path.exists():
+        try:
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+        except Exception:
+            state = {}
+
+    existing_id = state.get(str(channel_id))
+    if existing_id:
+        try:
+            msg = await channel.fetch_message(int(existing_id))
+            await msg.edit(embed=embed, view=view)
+            log.info("Edited existing panel msg=%s in #%s", existing_id, channel)
+            return
+        except (discord.NotFound, discord.HTTPException):
+            log.info("Existing panel msg=%s gone, posting new", existing_id)
+
+    msg = await channel.send(embed=embed, view=view)
+    state[str(channel_id)] = msg.id
+    state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+    log.info("Posted new panel msg=%s in #%s", msg.id, channel)
 
 
 def make_client() -> discord.Client:
