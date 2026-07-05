@@ -18,6 +18,17 @@ import logging
 import os
 from pathlib import Path
 
+# Load .env from repo root so the bot works under systemd / NSSM / Windows
+# Service (which don't auto-load .env files).
+try:
+    from dotenv import load_dotenv
+
+    _ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+    if _ENV_PATH.exists():
+        load_dotenv(_ENV_PATH, override=False)
+except ImportError:
+    pass  # python-dotenv not installed; fall back to os.environ only
+
 import discord
 from discord import Interaction
 
