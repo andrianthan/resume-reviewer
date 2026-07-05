@@ -55,6 +55,17 @@ EMBED_COLOR_PRIMARY = 0x5B6CFF
 EMBED_COLOR_SUCCESS = 0x2BB673
 EMBED_COLOR_WARN = 0xE0A92B
 
+# Module-level handle to the running client, set in on_ready. Avoids
+# `message._state.client` (private) and `message.client` (doesn't exist)
+# lookups that have been the source of multiple crashes in this flow.
+_CLIENT: discord.Client | None = None
+
+
+def _get_client() -> discord.Client:
+    if _CLIENT is None:
+        raise RuntimeError("bot client not initialized; on_ready hasn't fired")
+    return _CLIENT
+
 
 # ---------- View / Components ----------
 
@@ -102,10 +113,10 @@ class _MajorButton(discord.ui.Button):
         self.major = major
 
     async def callback(self, interaction: Interaction) -> None:
-        sess: UserSession = interaction.client._store.get(interaction.user.id)  # type: ignore[attr-defined]
+        sess: UserSession = _get_client()._store.get(interaction.user.id)  # type: ignore[attr-defined]
         sess.major = self.major
         sess.stage = Stage.AWAITING_YEAR
-        view = YearPickerView(interaction.client._store, interaction.user.id)  # type: ignore[attr-defined]
+        view = YearPickerView(_get_client()._store, interaction.user.id)  # type: ignore[attr-defined]
         await interaction.response.edit_message(
             content=f"Major: **{self.major}**. Pick your class year:",
             view=view,
@@ -134,7 +145,7 @@ class _YearButton(discord.ui.Button):
         self.year = year
 
     async def callback(self, interaction: Interaction) -> None:
-        sess: UserSession = interaction.client._store.get(interaction.user.id)  # type: ignore[attr-defined]
+        sess: UserSession = _get_client()._store.get(interaction.user.id)  # type: ignore[attr-defined]
         sess.class_year = self.year
         sess.stage = Stage.REVIEWING
         await interaction.response.edit_message(
@@ -149,7 +160,7 @@ class _YearButton(discord.ui.Button):
 
 async def _begin_dm_flow(interaction: Interaction) -> None:
     user = interaction.user
-    sess = interaction.client._store.get(user.id)  # type: ignore[attr-defined]
+    sess = _get_client()._store.get(user.id)  # type: ignore[attr-defined]
 
     # Dedupe: if we already started the flow for this user recently, don't
     # send a second "Upload your resume" DM — just confirm + send ephemeral.
@@ -190,7 +201,7 @@ async def _begin_dm_flow(interaction: Interaction) -> None:
 
 async def _on_dm_message(message: discord.Message) -> None:
     """Handle PDF uploads + free-text in DM."""
-    bot = message._state.client  # type: ignore[attr-defined]
+    bot = _get_client()
     sess = bot._store.get(message.author.id)  # type: ignore[attr-defined]
     log.info(
         "DM msg from %s (%s): stage=%s attachments=%d",
@@ -252,6 +263,7 @@ async def _on_dm_message(message: discord.Message) -> None:
     sess.stage = Stage.AWAITING_MAJOR
 
     view = MajorPickerView(bot._store, message.author.id)  # type: ignore[attr-defined]
+    # noqa — bot already fetched above
     await message.channel.send(
         embed=discord.Embed(
             title="🎓 Pick your major",
@@ -444,6 +456,8 @@ def make_client() -> discord.Client:
 
     @client.event
     async def on_ready() -> None:
+        global _CLIENT
+        _CLIENT = client
         log.info("Logged in as %s (id=%s)", client.user, client.user.id)  # type: ignore[union-attr]
         # Register persistent views
         client.add_view(StartReviewView())  # type: ignore[arg-type]
