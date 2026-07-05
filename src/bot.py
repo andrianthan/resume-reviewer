@@ -35,6 +35,7 @@ import discord
 from discord import Interaction
 
 from .evaluator import evaluate
+from .rate_limit import RateLimitStore, format_wait, now_ts
 from .rubric_loader import list_majors
 from .state import SessionStore, Stage, UserSession
 
@@ -45,6 +46,21 @@ log = logging.getLogger("resume-reviewer")
 DISCORD_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
 REVIEW_CHANNEL_ID = int(os.environ.get("REVIEW_CHANNEL_ID", "0"))
 MAX_RESUME_BYTES = 5 * 1024 * 1024  # 5 MB cap
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, str(default)))
+    except ValueError:
+        return default
+
+
+MAX_OPEN_THREADS_PER_USER = _env_int("MAX_OPEN_THREADS_PER_USER", 5)
+THREAD_CREATE_COOLDOWN_SECONDS = _env_int("THREAD_CREATE_COOLDOWN_SECONDS", 30)
+MAX_THREAD_CREATES_PER_HOUR = _env_int("MAX_THREAD_CREATES_PER_HOUR", 10)
+MAX_REVIEWS_PER_HOUR = _env_int("MAX_REVIEWS_PER_HOUR", 5)
+MAX_REVIEWS_PER_DAY = _env_int("MAX_REVIEWS_PER_DAY", 20)
+REVIEW_THREAD_TTL_SECONDS = _env_int("REVIEW_THREAD_TTL_SECONDS", 3600)
 
 # If RESUME_API_URL is set, route PDF processing through AWS Lambda.
 # Otherwise, fall back to local evaluate() (deterministic-only without OpenRouter).
@@ -58,6 +74,7 @@ EMBED_COLOR_SUCCESS = 0x2BB673
 EMBED_COLOR_WARN = 0xE0A92B
 DISCORD_FIELD_NAME_LIMIT = 256
 REVIEW_FIELD_VALUE_LIMIT = 500
+RATE_LIMITS = RateLimitStore(Path(__file__).resolve().parent.parent / "data" / "rate_limits.json")
 
 # Module-level handle to the running client, set in on_ready. Avoids
 # `message._state.client` (private) and `message.client` (doesn't exist)
@@ -77,6 +94,35 @@ def _clip(text: object, limit: int) -> str:
     if len(value) <= limit:
         return value
     return value[: max(0, limit - 1)].rstrip() + "…"
+
+
+async def _fetch_thread(thread_id: int) -> discord.Thread | None:
+    try:
+        channel = await _get_client().fetch_channel(thread_id)  # type: ignore[attr-defined]
+    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+        return None
+    return channel if isinstance(channel, discord.Thread) else None
+
+
+async def _prune_user_open_threads(user_id: int) -> dict[int, float]:
+    """Drop deleted/expired threads from the persisted open-thread set."""
+    now = now_ts()
+    kept: dict[int, float] = {}
+    for thread_id, created_at in RATE_LIMITS.get_open_threads(user_id).items():
+        thread = await _fetch_thread(thread_id)
+        expired = REVIEW_THREAD_TTL_SECONDS > 0 and now - created_at >= REVIEW_THREAD_TTL_SECONDS
+        if thread is None:
+            continue
+        if expired:
+            try:
+                await thread.delete(reason="Resume review thread TTL cleanup")
+                log.info("ttl-deleted thread %s for user_id=%s", thread_id, user_id)
+            except (discord.NotFound, discord.HTTPException) as e:
+                log.warning("ttl cleanup failed for thread %s: %r", thread_id, e)
+            continue
+        kept[thread_id] = created_at
+    RATE_LIMITS.replace_open_threads(user_id, kept)
+    return kept
 
 
 # ---------- View / Components ----------
@@ -126,6 +172,23 @@ class _MajorButton(discord.ui.Button):
 
     async def callback(self, interaction: Interaction) -> None:
         sess: UserSession = _get_client()._store.get(interaction.user.id)  # type: ignore[attr-defined]
+        if sess.stage != Stage.AWAITING_MAJOR:
+            await interaction.response.send_message(
+                "This review is no longer waiting for a major. Start a new review thread if needed.",
+                ephemeral=True,
+            )
+            return
+
+        allowed, message = RATE_LIMITS.check_review_run(
+            interaction.user.id,
+            max_per_hour=MAX_REVIEWS_PER_HOUR,
+            max_per_day=MAX_REVIEWS_PER_DAY,
+        )
+        if not allowed:
+            await interaction.response.send_message(message, ephemeral=True)
+            return
+        RATE_LIMITS.record_review_run(interaction.user.id)
+
         sess.major = self.major
         # No year picker — bot scores uniformly across class years.
         # Default to "junior" internally so evaluator API contract holds.
@@ -190,11 +253,13 @@ class _DeleteThreadButton(discord.ui.Button):
         view = self.view
         if isinstance(view, DeleteThreadView):
             try:
-                chan = _get_client().get_channel(view.thread_id)
-                if isinstance(chan, discord.Thread):
+                chan = await _fetch_thread(view.thread_id)
+                if chan:
                     await chan.delete(reason="User-initiated thread cleanup")
+                    RATE_LIMITS.remove_open_thread(view.user_id, view.thread_id)
                     log.info("user %s deleted thread %s", interaction.user.id, view.thread_id)
             except (discord.NotFound, discord.HTTPException) as e:
+                RATE_LIMITS.remove_open_thread(view.user_id, view.thread_id)
                 log.warning("delete thread failed: %r", e)
 
 
@@ -212,16 +277,6 @@ async def _begin_thread_flow(interaction: Interaction) -> None:
     bot = _get_client()
     sess = bot._store.get(user.id)  # type: ignore[attr-defined]
 
-    # Dedupe
-    if sess.stage == Stage.AWAITING_RESUME and sess.thread_id:
-        thread = interaction.guild.get_thread(sess.thread_id) if interaction.guild else None
-        if thread:
-            await interaction.response.send_message(
-                f"🧵 You already have an open review thread. Continue there: {thread.jump_url}",
-                ephemeral=True,
-            )
-            return
-
     channel = interaction.channel
     if not isinstance(channel, discord.TextChannel):
         await interaction.response.send_message(
@@ -232,6 +287,41 @@ async def _begin_thread_flow(interaction: Interaction) -> None:
 
     # Acknowledge the click first (must respond within 3s of interaction)
     await interaction.response.defer(ephemeral=True)
+
+    open_threads = await _prune_user_open_threads(user.id)
+
+    # One active upload session at a time. Completed review threads may remain
+    # open until cleanup/deletion, but uploads share one per-user session.
+    if sess.stage == Stage.AWAITING_RESUME and sess.thread_id:
+        thread = await _fetch_thread(sess.thread_id)
+        if thread:
+            await interaction.followup.send(
+                f"🧵 You already have an open upload thread. Continue there: {thread.jump_url}",
+                ephemeral=True,
+            )
+            return
+        RATE_LIMITS.remove_open_thread(user.id, sess.thread_id)
+        sess.thread_id = None
+        sess.stage = Stage.IDLE
+
+    if MAX_OPEN_THREADS_PER_USER > 0 and len(open_threads) >= MAX_OPEN_THREADS_PER_USER:
+        await interaction.followup.send(
+            (
+                f"You already have {len(open_threads)} open review threads. "
+                "Delete one with its red button or wait for auto-cleanup before opening another."
+            ),
+            ephemeral=True,
+        )
+        return
+
+    allowed, message = RATE_LIMITS.check_thread_create(
+        user.id,
+        cooldown_seconds=THREAD_CREATE_COOLDOWN_SECONDS,
+        max_per_hour=MAX_THREAD_CREATES_PER_HOUR,
+    )
+    if not allowed:
+        await interaction.followup.send(message, ephemeral=True)
+        return
 
     thread_name = f"📄 {user.display_name}'s review"
     try:
@@ -260,6 +350,8 @@ async def _begin_thread_flow(interaction: Interaction) -> None:
 
     sess.thread_id = thread.id
     sess.stage = Stage.AWAITING_RESUME
+    RATE_LIMITS.record_thread_create(user.id)
+    RATE_LIMITS.add_open_thread(user.id, thread.id)
     log.info("Created thread %s for user_id=%s", thread.id, user.id)
 
     await thread.send(
@@ -269,28 +361,39 @@ async def _begin_thread_flow(interaction: Interaction) -> None:
                 "Drop your **PDF** resume here (max 5 MB).\n"
                 "After upload, you'll pick your major and get a scored review.\n\n"
                 "🔒 Your resume is processed in-memory and discarded after the review.\n"
-                "⏰ **This thread auto-deletes in 1 hour.** Save anything you want to keep."
+                + (
+                    f"⏰ **This thread auto-deletes in {format_wait(REVIEW_THREAD_TTL_SECONDS)}.** Save anything you want to keep."
+                    if REVIEW_THREAD_TTL_SECONDS > 0
+                    else "Use the delete button on the review when you're done."
+                )
             ),
             color=EMBED_COLOR_PRIMARY,
         )
     )
 
-    # Schedule auto-deletion after 1 hour. Discord doesn't have native
+    # Schedule auto-deletion after the TTL. Discord doesn't have native
     # delete-after-time, so we archive + delete via a delayed background task.
-    async def _auto_delete(tid: int) -> None:
+    async def _auto_delete(tid: int, uid: int) -> None:
         try:
-            await asyncio.sleep(3600)  # 1 hour
-            chan = _get_client().get_channel(tid)
-            if isinstance(chan, discord.Thread):
+            await asyncio.sleep(REVIEW_THREAD_TTL_SECONDS)
+            chan = await _fetch_thread(tid)
+            if chan:
                 await chan.delete(reason="Resume review thread auto-cleanup (1h)")
                 log.info("auto-deleted thread %s", tid)
+            RATE_LIMITS.remove_open_thread(uid, tid)
         except Exception as e:  # noqa: BLE001
             log.warning("auto-delete failed for thread %s: %r", tid, e)
 
-    asyncio.create_task(_auto_delete(thread.id))
+    if REVIEW_THREAD_TTL_SECONDS > 0:
+        asyncio.create_task(_auto_delete(thread.id, user.id))
 
+    cleanup_note = (
+        f"auto-deletes in {format_wait(REVIEW_THREAD_TTL_SECONDS)}"
+        if REVIEW_THREAD_TTL_SECONDS > 0
+        else "delete it when done"
+    )
     await interaction.followup.send(
-        f"🧵 Started a private thread: {thread.jump_url} _(auto-deletes in 1h)_",
+        f"🧵 Started a private thread: {thread.jump_url} _({cleanup_note})_",
         ephemeral=True,
     )
 

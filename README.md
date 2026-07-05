@@ -61,6 +61,21 @@ python -m src.bot
 
 Bot logs in, posts the panel embed in your channel. Click button to test the flow.
 
+### Rate limits
+
+Defaults are intentionally conservative:
+
+| Variable | Default |
+| --- | ---: |
+| `MAX_OPEN_THREADS_PER_USER` | `5` |
+| `THREAD_CREATE_COOLDOWN_SECONDS` | `30` |
+| `MAX_THREAD_CREATES_PER_HOUR` | `10` |
+| `MAX_REVIEWS_PER_HOUR` | `5` |
+| `MAX_REVIEWS_PER_DAY` | `20` |
+| `REVIEW_THREAD_TTL_SECONDS` | `3600` |
+
+Set a limit to `0` to disable it. Runtime counters live in `data/rate_limits.json`.
+
 ## Tests
 
 ```bash
@@ -68,7 +83,7 @@ source .venv/bin/activate
 python -m pytest tests/ -v
 ```
 
-5 tests cover rubric loading, skill extraction, and deterministic evaluation across all 5 majors.
+Tests cover rubric loading, skill extraction, rate limits, and deterministic evaluation across all 5 majors.
 
 ## Rubric packs
 
