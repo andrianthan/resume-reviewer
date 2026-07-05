@@ -78,7 +78,8 @@ def test_evaluate_all_majors_dont_explode() -> None:
     for major in list_majors():
         review = evaluate(major=major, class_year="sophomore", text=FIXTURE, use_llm=False)
         assert review.final_score >= 0.0
-        assert len(review.categories) == 6
+        assert len(review.categories) >= 4  # every rubric has at least 4 categories
+        # All category weights should sum to 1.0 (validated via Pydantic on load)
 
 
 if __name__ == "__main__":

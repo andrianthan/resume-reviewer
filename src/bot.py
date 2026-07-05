@@ -357,10 +357,24 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
         sess.stage = Stage.IDLE
         return
 
+    # Build score breakdown: total max from categories
+    total_max = sum(cat.max_score for cat in review.categories)
+    # Color thresholds: 80+ green, 60-80 yellow, <60 red
+    color = (
+        EMBED_COLOR_SUCCESS
+        if review.final_score >= 80
+        else EMBED_COLOR_WARN
+        if review.final_score >= 60
+        else 0xCC3344
+    )
     embed = discord.Embed(
-        title=f"📊 Resume Review — {sess.major.title()} / {sess.class_year.title()}",
-        description=f"**Final score: `{review.final_score:.1f}`**",
-        color=EMBED_COLOR_SUCCESS if review.final_score >= 70 else EMBED_COLOR_WARN,
+        title=f"📊 Resume Review — {sess.major.title()}",
+        description=(
+            f"**Final score: `{review.final_score:.1f} / 100`**\n"
+            f"_Sum of {len(review.categories)} category scores (max {total_max:.0f})._\n"
+            "Higher = stronger resume for this role. 80+ is competitive for top internships."
+        ),
+        color=color,
     )
     if hasattr(review, "model_dump"):
         elapsed = (review.model_dump().get("elapsed_ms") if isinstance(review, object) else None)
@@ -376,7 +390,7 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
         if cat.suggestions:
             body += "**Suggestions:**\n" + "\n".join(f"→ {s}" for s in cat.suggestions[:2])
         embed.add_field(
-            name=f"{cat.category_key} ({cat.score:.1f}/{cat.max_score})",
+            name=f"{cat.category_key} ({cat.score:.1f}/{cat.max_score}) — {pct:.0f}%",
             value=body or "_—_",
             inline=False,
         )
@@ -387,12 +401,15 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
             inline=False,
         )
 
+    # Build the delete-thread view
+    delete_view = DeleteThreadView(thread_id=sess.thread_id, user_id=user.id)
+
     # Post into the private thread the user owns (not DM, not channel).
     if sess.thread_id:
         try:
             thread = await _get_client().fetch_channel(sess.thread_id)  # type: ignore[attr-defined]
             if isinstance(thread, discord.Thread):
-                await thread.send(embed=embed)
+                await thread.send(embed=embed, view=delete_view)
         except (discord.NotFound, discord.HTTPException):
             pass
     # Also keep an ephemeral confirmation in the channel (visible to nobody but user)
