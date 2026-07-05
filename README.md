@@ -11,7 +11,7 @@ Discord bot that scores resumes against major-specific rubrics. Click a button â
 3. Member uploads PDF (max 5 MB) in that thread.
 4. Bot asks for major (consulting / finance / marketing / ops-hr / supply-chain / tech).
 5. Bot runs evaluator + posts scored embed to the thread with per-category evidence + suggestions.
-6. User can delete the thread with the review embed button; otherwise it auto-deletes after 1 hour.
+6. Review thread auto-deletes after 30 minutes.
 7. Resume bytes zeroed in memory immediately after review.
 
 ## Setup
@@ -72,7 +72,7 @@ Defaults are intentionally conservative:
 | `MAX_THREAD_CREATES_PER_HOUR` | `10` |
 | `MAX_REVIEWS_PER_HOUR` | `5` |
 | `MAX_REVIEWS_PER_DAY` | `20` |
-| `REVIEW_THREAD_TTL_SECONDS` | `3600` |
+| `REVIEW_THREAD_TTL_SECONDS` | `1800` |
 
 Set a limit to `0` to disable it. Runtime counters live in `data/rate_limits.json`.
 

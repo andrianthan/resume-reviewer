@@ -60,7 +60,7 @@ THREAD_CREATE_COOLDOWN_SECONDS = _env_int("THREAD_CREATE_COOLDOWN_SECONDS", 30)
 MAX_THREAD_CREATES_PER_HOUR = _env_int("MAX_THREAD_CREATES_PER_HOUR", 10)
 MAX_REVIEWS_PER_HOUR = _env_int("MAX_REVIEWS_PER_HOUR", 5)
 MAX_REVIEWS_PER_DAY = _env_int("MAX_REVIEWS_PER_DAY", 20)
-REVIEW_THREAD_TTL_SECONDS = _env_int("REVIEW_THREAD_TTL_SECONDS", 3600)
+REVIEW_THREAD_TTL_SECONDS = _env_int("REVIEW_THREAD_TTL_SECONDS", 1800)
 
 # If RESUME_API_URL is set, route PDF processing through AWS Lambda.
 # Otherwise, fall back to local evaluate() (deterministic-only without OpenRouter).
@@ -216,53 +216,6 @@ class YearPickerView(discord.ui.View):
         self.user_id = user_id
 
 
-class DeleteThreadView(discord.ui.View):
-    """Single 'Delete this thread' button. Only the thread owner can click."""
-
-    def __init__(self, thread_id: int, user_id: int) -> None:
-        super().__init__(timeout=3600)
-        self.thread_id = thread_id
-        self.user_id = user_id
-        self.add_item(_DeleteThreadButton())
-
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                "Only the thread owner can delete this thread.",
-                ephemeral=True,
-            )
-            return False
-        return True
-
-
-class _DeleteThreadButton(discord.ui.Button):
-    def __init__(self) -> None:
-        super().__init__(
-            label="Delete this thread",
-            style=discord.ButtonStyle.danger,
-            custom_id="resume_review:delete_thread",
-            emoji="🗑️",
-        )
-
-    async def callback(self, interaction: Interaction) -> None:
-        await interaction.response.send_message(
-            "🗑️ Deleting thread in 3 seconds…",
-            ephemeral=True,
-        )
-        await asyncio.sleep(3)
-        view = self.view
-        if isinstance(view, DeleteThreadView):
-            try:
-                chan = await _fetch_thread(view.thread_id)
-                if chan:
-                    await chan.delete(reason="User-initiated thread cleanup")
-                    RATE_LIMITS.remove_open_thread(view.user_id, view.thread_id)
-                    log.info("user %s deleted thread %s", interaction.user.id, view.thread_id)
-            except (discord.NotFound, discord.HTTPException) as e:
-                RATE_LIMITS.remove_open_thread(view.user_id, view.thread_id)
-                log.warning("delete thread failed: %r", e)
-
-
 # ---------- Thread flow (private, in-channel) ----------
 
 async def _begin_thread_flow(interaction: Interaction) -> None:
@@ -308,7 +261,7 @@ async def _begin_thread_flow(interaction: Interaction) -> None:
         await interaction.followup.send(
             (
                 f"You already have {len(open_threads)} open review threads. "
-                "Delete one with its red button or wait for auto-cleanup before opening another."
+                "Wait for auto-cleanup before opening another."
             ),
             ephemeral=True,
         )
@@ -364,7 +317,7 @@ async def _begin_thread_flow(interaction: Interaction) -> None:
                 + (
                     f"⏰ **This thread auto-deletes in {format_wait(REVIEW_THREAD_TTL_SECONDS)}.** Save anything you want to keep."
                     if REVIEW_THREAD_TTL_SECONDS > 0
-                    else "Use the delete button on the review when you're done."
+                    else "This thread will stay open until a moderator deletes it."
                 )
             ),
             color=EMBED_COLOR_PRIMARY,
@@ -378,7 +331,7 @@ async def _begin_thread_flow(interaction: Interaction) -> None:
             await asyncio.sleep(REVIEW_THREAD_TTL_SECONDS)
             chan = await _fetch_thread(tid)
             if chan:
-                await chan.delete(reason="Resume review thread auto-cleanup (1h)")
+                await chan.delete(reason="Resume review thread auto-cleanup")
                 log.info("auto-deleted thread %s", tid)
             RATE_LIMITS.remove_open_thread(uid, tid)
         except Exception as e:  # noqa: BLE001
@@ -573,8 +526,7 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
         try:
             thread = await _get_client().fetch_channel(sess.thread_id)  # type: ignore[attr-defined]
             if isinstance(thread, discord.Thread):
-                delete_view = DeleteThreadView(thread_id=sess.thread_id, user_id=user.id)
-                await thread.send(embed=embed, view=delete_view)
+                await thread.send(embed=embed)
                 posted_to_thread = True
             else:
                 post_error = f"Fetched channel was {type(thread).__name__}, not Thread"
