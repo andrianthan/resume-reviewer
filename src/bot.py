@@ -251,7 +251,7 @@ async def _on_dm_message(message: discord.Message) -> None:
     sess.resume_filename = att.filename
     sess.stage = Stage.AWAITING_MAJOR
 
-    view = MajorPickerView(message.client._store, message.author.id)  # type: ignore[attr-defined]
+    view = MajorPickerView(bot._store, message.author.id)  # type: ignore[attr-defined]
     await message.channel.send(
         embed=discord.Embed(
             title="🎓 Pick your major",
