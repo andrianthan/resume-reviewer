@@ -6,8 +6,10 @@ Flow:
 2. Member clicks button → bot DMs them.
 3. Bot asks for PDF upload.
 4. Bot asks for major (button row).
-5. Bot asks for class year (button row).
-6. Bot runs evaluator, posts scored embed, deletes the resume from memory.
+5. Bot runs evaluator, posts scored embed, deletes the resume from memory.
+
+Note: scoring is uniform across class years (internship review — same bar
+for sophomore and senior).
 """
 from __future__ import annotations
 
@@ -115,45 +117,30 @@ class _MajorButton(discord.ui.Button):
     async def callback(self, interaction: Interaction) -> None:
         sess: UserSession = _get_client()._store.get(interaction.user.id)  # type: ignore[attr-defined]
         sess.major = self.major
-        sess.stage = Stage.AWAITING_YEAR
-        view = YearPickerView(_get_client()._store, interaction.user.id)  # type: ignore[attr-defined]
+        # No year picker — bot scores uniformly across class years.
+        # Default to "junior" internally so evaluator API contract holds.
+        sess.class_year = "junior"
+        sess.stage = Stage.REVIEWING
         await interaction.response.edit_message(
-            content=f"Major: **{self.major}**. Pick your class year:",
-            view=view,
+            content=f"Major: **{self.major}**. Running review…",
+            view=None,
             embed=None,
         )
+        await _run_review(interaction, sess)
 
 
 class YearPickerView(discord.ui.View):
-    """Class-year selection buttons."""
+    """Class-year selection (DISABLED — kept as stub for backward compat).
+
+    The bot scores uniformly across class years because the review is for
+    internships, where a sophomore is held to the same bar as a senior.
+    This class is a no-op stub so old serialized views don't crash on import.
+    """
 
     def __init__(self, store: SessionStore, user_id: int) -> None:
         super().__init__(timeout=600)
         self.store = store
         self.user_id = user_id
-        for yr in YEARS:
-            self.add_item(_YearButton(yr))
-
-
-class _YearButton(discord.ui.Button):
-    def __init__(self, year: str) -> None:
-        super().__init__(
-            label=year,
-            style=discord.ButtonStyle.secondary,
-            custom_id=f"resume_review:year:{year}",
-        )
-        self.year = year
-
-    async def callback(self, interaction: Interaction) -> None:
-        sess: UserSession = _get_client()._store.get(interaction.user.id)  # type: ignore[attr-defined]
-        sess.class_year = self.year
-        sess.stage = Stage.REVIEWING
-        await interaction.response.edit_message(
-            content="Got it. Running review…",
-            view=None,
-            embed=None,
-        )
-        await _run_review(interaction, sess)
 
 
 # ---------- DM flow ----------
@@ -177,7 +164,7 @@ async def _begin_dm_flow(interaction: Interaction) -> None:
                 title="📄 Upload your resume",
                 description=(
                     "Send a **PDF** of your resume in this DM (max 5 MB).\n"
-                    "After upload, you'll pick your major + class year.\n\n"
+                    "After upload, you'll pick your major.\n\n"
                     "🔒 Your resume is processed in-memory and discarded after the review."
                 ),
                 color=EMBED_COLOR_PRIMARY,
@@ -411,7 +398,7 @@ async def _post_panel(bot: discord.Client, channel_id: int) -> None:
         description=(
             "Click **Review my resume** to get scored feedback on your resume.\n\n"
             "• 5 majors supported: " + ", ".join(MAJORS) + "\n"
-            "• Sophomore / Junior / Senior / etc. calibration\n"
+            "• Same scoring standard for all class years (internship review)\n"
             "• Evidence per category — not just a number\n"
             "🔒 Resume deleted after review."
         ),

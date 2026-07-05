@@ -239,11 +239,11 @@ def evaluate(
         domain_adj = raw
 
     # Class-year profile lookup + adjustment
+    # Class-year calibration intentionally disabled. This is an internship
+    # review — same bar for sophomore and senior. We still surface the
+    # year_profile in the result for display, but no score adjustment.
     year_profile = next(p for p in rubric.class_years if p.year == class_year)
-    if _meets_year_expectations(sections, year_profile):
-        year_adj = domain_adj
-    else:
-        year_adj = domain_adj * 0.85
+    year_adj = domain_adj
 
     return Review(
         major=major,
