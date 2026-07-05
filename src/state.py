@@ -24,6 +24,7 @@ class UserSession:
     class_year: str | None = None
     last_message_id: int | None = None
     error: str | None = None
+    thread_id: int | None = None  # private thread id for the in-channel review flow
 
 
 class SessionStore:

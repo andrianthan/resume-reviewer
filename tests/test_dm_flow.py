@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.bot import _on_dm_message, _get_client, _CLIENT, Stage  # noqa: E402
+from src.bot import _on_thread_message, _get_client, _CLIENT, Stage  # noqa: E402
 from src.state import SessionStore  # noqa: E402
 
 FIXTURE_PDF = Path("/Users/andrianthan/Downloads/AnThanSWE (11).pdf")
@@ -41,7 +41,9 @@ async def main() -> None:
 
     # User sends the bot a DM with the real PDF
     user_id = 123456789
-    fake_store.get(user_id).stage = Stage.AWAITING_RESUME  # simulate after button click
+    sess = fake_store.get(user_id)
+    sess.stage = Stage.AWAITING_RESUME  # simulate after button click
+    sess.thread_id = 12345  # mock thread id
 
     pdf_bytes = FIXTURE_PDF.read_bytes()
     attachment = MagicMock()
@@ -60,7 +62,7 @@ async def main() -> None:
     message.attachments = [attachment]
     message.channel = channel
 
-    await _on_dm_message(message)
+    await _on_thread_message(message, sess)
 
     sess = fake_store.get(user_id)
     print(f"stage after: {sess.stage}")

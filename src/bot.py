@@ -86,7 +86,7 @@ class StartReviewView(discord.ui.View):
     async def start_btn(
         self, interaction: Interaction, _: discord.ui.Button
     ) -> None:
-        await _begin_dm_flow(interaction)
+        await _begin_thread_flow(interaction)
 
 
 class MajorPickerView(discord.ui.View):
@@ -143,74 +143,105 @@ class YearPickerView(discord.ui.View):
         self.user_id = user_id
 
 
-# ---------- DM flow ----------
+# ---------- Thread flow (private, in-channel) ----------
 
-async def _begin_dm_flow(interaction: Interaction) -> None:
+async def _begin_thread_flow(interaction: Interaction) -> None:
+    """Click handler: create a private thread in the channel for this user.
+
+    Replaces the DM flow. The thread is created with `private=True` so only
+    the inviter + the bot can see it. The user uploads the PDF inside the
+    thread; the bot processes + posts the scored review in the same thread.
+    Channel stays clean; no DMs required.
+    """
     user = interaction.user
-    sess = _get_client()._store.get(user.id)  # type: ignore[attr-defined]
+    bot = _get_client()
+    sess = bot._store.get(user.id)  # type: ignore[attr-defined]
 
-    # Dedupe: if we already started the flow for this user recently, don't
-    # send a second "Upload your resume" DM — just confirm + send ephemeral.
-    if sess.stage == Stage.AWAITING_RESUME:
+    # Dedupe
+    if sess.stage == Stage.AWAITING_RESUME and sess.thread_id:
+        thread = interaction.guild.get_thread(sess.thread_id) if interaction.guild else None
+        if thread:
+            await interaction.response.send_message(
+                f"🧵 You already have an open review thread. Continue there: {thread.jump_url}",
+                ephemeral=True,
+            )
+            return
+
+    channel = interaction.channel
+    if not isinstance(channel, discord.TextChannel):
         await interaction.response.send_message(
-            f"📨 Already waiting for your PDF, {user.mention}. Check your DMs.",
+            "Run this in a text channel, not a DM.",
             ephemeral=True,
         )
         return
 
+    # Acknowledge the click first (must respond within 3s of interaction)
+    await interaction.response.defer(ephemeral=True)
+
+    thread_name = f"📄 {user.display_name}'s review"
     try:
-        await user.send(
-            embed=discord.Embed(
-                title="📄 Upload your resume",
-                description=(
-                    "Send a **PDF** of your resume in this DM (max 5 MB).\n"
-                    "After upload, you'll pick your major.\n\n"
-                    "🔒 Your resume is processed in-memory and discarded after the review."
-                ),
-                color=EMBED_COLOR_PRIMARY,
-            )
+        thread = await channel.create_thread(
+            name=thread_name[:100],
+            type=discord.ChannelType.private_thread,
+            auto_archive_duration=60,
+            reason=f"Resume review for {user}",
         )
     except discord.Forbidden:
-        await interaction.response.send_message(
-            "I can't DM you. Open your DMs and try again.",
+        await interaction.followup.send(
+            "I don't have permission to create threads here. Ask an admin to grant `Create Private Threads`.",
             ephemeral=True,
         )
         return
+    except discord.HTTPException as e:
+        log.exception("create_thread failed: %s", e)
+        await interaction.followup.send(f"Couldn't create thread: {e}", ephemeral=True)
+        return
 
+    # Add the user to the thread (private threads auto-add the inviter)
+    try:
+        await thread.add_user(user)
+    except Exception:
+        pass
+
+    sess.thread_id = thread.id
     sess.stage = Stage.AWAITING_RESUME
-    log.info("Sent DM upload prompt to user_id=%s", user.id)
+    log.info("Created thread %s for user_id=%s", thread.id, user.id)
 
-    await interaction.response.send_message(
-        f"✅ Check your DMs, {user.mention}.",
+    await thread.send(
+        embed=discord.Embed(
+            title="📄 Upload your resume",
+            description=(
+                "Drop your **PDF** resume here (max 5 MB).\n"
+                "After upload, you'll pick your major and get a scored review.\n\n"
+                "🔒 Your resume is processed in-memory and discarded after the review."
+            ),
+            color=EMBED_COLOR_PRIMARY,
+        )
+    )
+
+    await interaction.followup.send(
+        f"🧵 Started a private thread: {thread.jump_url}",
         ephemeral=True,
     )
 
 
-async def _on_dm_message(message: discord.Message) -> None:
-    """Handle PDF uploads + free-text in DM."""
-    bot = _get_client()
-    sess = bot._store.get(message.author.id)  # type: ignore[attr-defined]
+async def _on_thread_message(message: discord.Message, sess: "UserSession") -> None:
+    """Handle PDF uploads inside a private thread."""
     log.info(
-        "DM msg from %s (%s): stage=%s attachments=%d",
+        "thread msg from %s (%s): stage=%s attachments=%d",
         message.author,
         message.author.id,
         sess.stage,
         len(message.attachments),
     )
-    if message.author.bot:
-        return
-    if message.guild is not None:
-        return  # DM only
 
-    sess = bot._store.get(message.author.id)  # type: ignore[attr-defined]
     if sess.stage != Stage.AWAITING_RESUME:
-        # If they sent a PDF while not in the right state, give them a hint
         if message.attachments:
             await message.channel.send(
                 embed=discord.Embed(
                     description=(
                         "I got your file, but I'm not in upload mode. "
-                        "Click **Review my resume** in #resume-review-bot to start."
+                        "Click **Review my resume** in #resume-review-bot to start a new review."
                     ),
                     color=EMBED_COLOR_WARN,
                 )
@@ -220,7 +251,7 @@ async def _on_dm_message(message: discord.Message) -> None:
     if not message.attachments:
         await message.channel.send(
             embed=discord.Embed(
-                description="Please attach a **PDF** resume to this DM.",
+                description="Please attach a **PDF** resume to this thread.",
                 color=EMBED_COLOR_WARN,
             )
         )
@@ -244,13 +275,13 @@ async def _on_dm_message(message: discord.Message) -> None:
         )
         return
 
+    bot = _get_client()
     pdf_bytes = await att.read()
     sess.resume_bytes = pdf_bytes
     sess.resume_filename = att.filename
     sess.stage = Stage.AWAITING_MAJOR
 
     view = MajorPickerView(bot._store, message.author.id)  # type: ignore[attr-defined]
-    # noqa — bot already fetched above
     await message.channel.send(
         embed=discord.Embed(
             title="🎓 Pick your major",
@@ -336,14 +367,16 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
             inline=False,
         )
 
-    # Send to DM
-    try:
-        await user.send(embed=embed)
-    except discord.Forbidden:
-        await interaction.followup.send(
-            "I can't DM you the results. Open your DMs.",
-            ephemeral=True,
-        )
+    # Post into the private thread the user owns (not DM, not channel).
+    if sess.thread_id:
+        try:
+            thread = await _get_client().fetch_channel(sess.thread_id)  # type: ignore[attr-defined]
+            if isinstance(thread, discord.Thread):
+                await thread.send(embed=embed)
+        except (discord.NotFound, discord.HTTPException):
+            pass
+    # Also keep an ephemeral confirmation in the channel (visible to nobody but user)
+    await interaction.followup.send("✅ Done. Check your review thread.", ephemeral=True)
 
     # Cleanup
     sess.resume_bytes = None
@@ -454,20 +487,28 @@ def make_client() -> discord.Client:
     async def on_message(message: discord.Message) -> None:
         # Dedupe: discord.py occasionally fires on_message twice for the same
         # id (heartbeat / reconnect retries). Track seen ids per session.
-        if not isinstance(message.channel, discord.DMChannel):
-            return
-        seen = getattr(client, "_seen_dm_ids", None)
+        seen = getattr(client, "_seen_msg_ids", None)
         if seen is None:
             seen = set()
-            client._seen_dm_ids = seen  # type: ignore[attr-defined]
+            client._seen_msg_ids = seen  # type: ignore[attr-defined]
         if message.id in seen:
             return
         seen.add(message.id)
-        # Bound the set so it doesn't grow forever.
         if len(seen) > 1000:
-            # Drop the oldest half.
-            client._seen_dm_ids = set(list(seen)[-500:])  # type: ignore[attr-defined]
-        await _on_dm_message(message)
+            client._seen_msg_ids = set(list(seen)[-500:])  # type: ignore[attr-defined]
+
+        # Only handle messages inside a private thread created by our flow.
+        if not isinstance(message.channel, discord.Thread):
+            return
+        if message.channel.type != discord.ChannelType.private_thread:
+            return
+        if message.author.bot:
+            return
+        # Only react to messages from the user who owns the thread.
+        sess = client._store.get(message.author.id)  # type: ignore[attr-defined]
+        if sess.thread_id != message.channel.id:
+            return
+        await _on_thread_message(message, sess)
 
     return client
 
