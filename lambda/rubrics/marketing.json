@@ -1,0 +1,277 @@
+{
+  "major": "marketing",
+  "label": "Marketing / Brand / Digital",
+  "version": 1,
+  "categories": [
+    {
+      "key": "impact",
+      "label": "Quantified Campaign Impact",
+      "weight": 0.30,
+      "rubric": "Score 0-40 on % of bullets with marketing metrics (engagement rate, impressions, CTR, conversion, follower growth, CAC, ROAS, open rate). Marketing values campaign outcomes not duties. 'Helped with social media' = 0; 'Grew IG account from 200 to 4,800 followers (+2,300%) in 14 weeks' = strong.",
+      "red_flags": ["no_quantified_campaign_bullets", "vague_helped_with_marketing", "duty_statements_without_metrics"]
+    },
+    {
+      "key": "domain_fit",
+      "label": "Marketing Domain Fit",
+      "weight": 0.25,
+      "rubric": "Score 0-25 on marketing/brand/digital relevance. Strong: internship at P&G/Unilever/L'Oreal/HubSpot/Ogilvy, campus marketing org officer, student-run publication, content portfolio. Weak: roles with no marketing framing even if adjacent.",
+      "red_flags": ["no_marketing_signal", "no_content_or_campaign_artifact"]
+    },
+    {
+      "key": "technical",
+      "label": "Marketing Tools & Analytics",
+      "weight": 0.15,
+      "rubric": "Score 0-15 on depth in 2-4 tools (not breadth in 15). Strong: GA4 + Google Ads + HubSpot + Hootsuite with hands-on projects. Listing every tool without depth is a red flag. Bonus: SEO tools (SEMrush/Ahrefs), A/B testing, Canva/Figma basics.",
+      "red_flags": ["lists_every_tool_without_depth", "claims_expertise_without_artifact", "no_analytics_tool_listed"]
+    },
+    {
+      "key": "format",
+      "label": "Format / Portfolio",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on 1-page rule, clean typography (typography matters in marketing), link to portfolio or content samples prominently placed. No tables/columns. .docx + .pdf + portfolio link tested.",
+      "red_flags": ["two_column_layout", "no_portfolio_link", "typos_in_copywriting_resume"]
+    },
+    {
+      "key": "brand",
+      "label": "Personal Brand Consistency",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on LinkedIn headline + content matching resume. Bonus if LinkedIn features original posts, articles, or portfolio work. Marketing hires personal-brand practitioners — show, don't claim.",
+      "red_flags": ["linkedin_role_mismatch", "no_personal_content_on_linkedin"]
+    },
+    {
+      "key": "extras",
+      "label": "Extras, Side Projects & Certifications",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on HubSpot Inbound/Content cert, Google Analytics GAIQ, Meta Blueprint, Hootsuite Social Marketing cert, side newsletter or Substack, TikTok/IG with measurable following, freelance UGC, side Etsy shop, hackathon wins, side-project section on resume.",
+      "red_flags": []
+    }
+  ],
+  "skills": [
+    {
+      "name": "Google Analytics (GA4)",
+      "tier": "exact",
+      "weight": 1.5
+    },
+    {
+      "name": "Google Ads",
+      "tier": "exact",
+      "weight": 1.3
+    },
+    {
+      "name": "Meta Ads (Facebook + Instagram)",
+      "tier": "exact",
+      "weight": 1.3
+    },
+    {
+      "name": "LinkedIn Ads",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "HubSpot CRM",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "Mailchimp",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Hootsuite",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Buffer / Sprout Social",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "SEMrush",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "Ahrefs / Moz",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Canva",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Adobe Photoshop (basics)",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Google Search Console",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Meta Business Suite",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Figma basics",
+      "tier": "related",
+      "weight": 0.7
+    },
+    {
+      "name": "Adobe Illustrator",
+      "tier": "related",
+      "weight": 0.6
+    },
+    {
+      "name": "Adobe Premiere Pro / Capcut",
+      "tier": "related",
+      "weight": 0.7
+    },
+    {
+      "name": "Klaviyo",
+      "tier": "related",
+      "weight": 0.6
+    },
+    {
+      "name": "Hotjar",
+      "tier": "related",
+      "weight": 0.6
+    },
+    {
+      "name": "Notion / Airtable",
+      "tier": "related",
+      "weight": 0.5
+    },
+    {
+      "name": "Storytelling",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Creativity",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Data-driven thinking",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Attention to detail",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Project management",
+      "tier": "transferable",
+      "weight": 0.6
+    }
+  ],
+  "domains": [
+    {
+      "industry": "consumer_packaged_goods",
+      "multiplier": 1.4
+    },
+    {
+      "industry": "digital_agency",
+      "multiplier": 1.3
+    },
+    {
+      "industry": "tech_saas",
+      "multiplier": 1.3
+    },
+    {
+      "industry": "beauty_fashion_retail",
+      "multiplier": 1.3
+    },
+    {
+      "industry": "media_publishing",
+      "multiplier": 1.1
+    },
+    {
+      "industry": "nonprofit_social_impact",
+      "multiplier": 0.9
+    },
+    {
+      "industry": "fintech",
+      "multiplier": 0.9
+    },
+    {
+      "industry": "manufacturing",
+      "multiplier": 0.7
+    }
+  ],
+  "class_years": [
+    {
+      "year": "freshman",
+      "expected_sections": ["education", "projects"],
+      "gpa_required_above": null,
+      "min_quantified_bullets": 0,
+      "internship_required": false
+    },
+    {
+      "year": "sophomore",
+      "expected_sections": ["education", "work", "projects"],
+      "gpa_required_above": 3.0,
+      "min_quantified_bullets": 2,
+      "internship_required": false
+    },
+    {
+      "year": "junior",
+      "expected_sections": ["education", "work", "projects", "leadership"],
+      "gpa_required_above": 3.2,
+      "min_quantified_bullets": 4,
+      "internship_required": true
+    },
+    {
+      "year": "senior",
+      "expected_sections": ["education", "work", "projects", "leadership"],
+      "gpa_required_above": 3.2,
+      "min_quantified_bullets": 6,
+      "internship_required": true
+    }
+  ],
+  "bonus_signals": [
+    "Portfolio site with writing samples + campaign case studies",
+    "Internship at known brand or agency (P&G, Unilever, L'Oreal, HubSpot, Ogilvy)",
+    "Personal brand on TikTok/IG/LinkedIn/Substack with measurable following",
+    "Case studies with metrics (engagement, impressions, CTR, conversion, follower growth)",
+    "Google Analytics Individual Qualification (GAIQ)",
+    "HubSpot Inbound or Content Marketing certification",
+    "Meta Blueprint or Google Ads certification",
+    "Side newsletter / Substack / TikTok creator account",
+    "Volunteer marketing for nonprofits with documented impact",
+    "Hackathon wins or pitch competition wins",
+    "Multilingual skills for global brand roles"
+  ],
+  "disqualifiers": [
+    "no_metrics_on_past_work",
+    "no_portfolio_or_writing_samples",
+    "vague_passionate_about_marketing_without_specifics",
+    "lists_every_tool_without_depth",
+    "spelling_or_grammar_errors",
+    "claims_expertise_in_unused_tools",
+    "no_awareness_of_basic_marketing_concepts",
+    "purely_academic_background_no_hands_on",
+    "buzzword_stuffing_without_substance",
+    "no_curiosity_or_learning_loop_shown"
+  ],
+  "target_roles": [
+    "Brand Marketing",
+    "Digital Marketing",
+    "Content Marketing",
+    "Social Media Marketing",
+    "Growth Marketing",
+    "Performance Marketing",
+    "Product Marketing",
+    "Email Marketing",
+    "SEO / SEM",
+    "Marketing Analytics"
+  ]
+}

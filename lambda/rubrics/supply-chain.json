@@ -1,0 +1,308 @@
+{
+  "major": "supply-chain",
+  "label": "Supply Chain / Logistics / Procurement",
+  "version": 1,
+  "categories": [
+    {
+      "key": "impact",
+      "label": "Quantified SC Impact",
+      "weight": 0.30,
+      "rubric": "Score 0-40 on % of bullets with SC metrics (cost savings $, inventory accuracy %, fill rate %, on-time delivery %, KPI improvements, cycle count completion, $PO volume). 'Helped with sourcing' = 0; 'Cut supplier lead time from 14 to 9 days (-36%), issued $420K in POs across 18 SKUs' = strong. Every JD asks for KPIs.",
+      "red_flags": ["no_quantified_bullets", "vague_duty_statements", "no_kpis_anywhere"]
+    },
+    {
+      "key": "domain_fit",
+      "label": "Supply Chain Domain Fit",
+      "weight": 0.25,
+      "rubric": "Score 0-25 on SC/logistics/procurement relevance. Strong: SCM/IE/OR/manufacturing-engineering major, internship at manufacturer/retailer/3PL (P&G, Walmart, Tesla, Caterpillar, Nike, PepsiCo, 3M, UPS/FedEx/Maersk/DHL), co-op in SC, APICS/ASCM student chapter, coursework in SCM/OR/optimization. Weak: unrelated major without bridge coursework.",
+      "red_flags": ["unrelated_major_without_bridge_coursework", "no_sc_signal_at_all"]
+    },
+    {
+      "key": "technical",
+      "label": "Technical (SC Systems & Analytics)",
+      "weight": 0.20,
+      "rubric": "Score 0-20 on Excel (pivot tables, VLOOKUP/XLOOKUP, Power Query, VBA macros), ERP/MRP systems (SAP, Oracle, NetSuite, JDE), SQL, Tableau / Power BI dashboards, forecasting/demand planning/S&OP, statistical forecasting. Tier-1 differentiator: SAP/ERP named with hands-on project.",
+      "red_flags": ["no_excel_mention", "no_data_analysis", "no_erp_or_analytics_tool"]
+    },
+    {
+      "key": "format",
+      "label": "Format / ATS",
+      "weight": 0.08,
+      "rubric": "Score 0-8 on 1-page rule, clean sections, no tables/columns, .docx + .pdf export tested, consistent date formatting. SC recruiters screen hundreds of intern apps — whitespace matters.",
+      "red_flags": ["two_column_layout", "graphics_in_header", "inconsistent_dates"]
+    },
+    {
+      "key": "brand",
+      "label": "Brand & Location Flexibility",
+      "weight": 0.07,
+      "rubric": "Score 0-7 on LinkedIn headline + experience matching resume. SC roles skew 5-day onsite at manufacturing/3PL plants — explicit location/relocation flexibility matters. Bonus: clear US work authorization statement.",
+      "red_flags": ["linkedin_role_mismatch", "vague_work_authorization"]
+    },
+    {
+      "key": "extras",
+      "label": "Extras & Certifications",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on APICS/ASCM student membership (free, immediate signal), Lean Six Sigma Yellow/Green Belt in progress, CPIM Part 1 / CSCP / CLTD / CPSM coursework, SAP Learning Hub completion, multilingual (Spanish/French/German/Mandarin), sustainability/ESG/circular-SC project, Industry 4.0/digital twin/AI-ML project, capstone or case-competition winner.",
+      "red_flags": []
+    }
+  ],
+  "skills": [
+    {
+      "name": "Microsoft Excel (advanced: pivot tables, VLOOKUP/XLOOKUP, formulas)",
+      "tier": "exact",
+      "weight": 1.5
+    },
+    {
+      "name": "Microsoft PowerPoint",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Microsoft Office Suite (Word, Outlook)",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Inventory management",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "Procurement / sourcing / purchasing",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "Logistics (inbound / outbound / warehousing)",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "ERP / MRP systems",
+      "tier": "exact",
+      "weight": 1.5
+    },
+    {
+      "name": "Data analysis",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "Communication (verbal + written)",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Analytical / problem-solving",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Teamwork / cross-functional collaboration",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Detail-oriented / organizational",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Proactive / self-starter",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "SAP (any: ECC, APO, S/4HANA, MM)",
+      "tier": "related",
+      "weight": 1.2
+    },
+    {
+      "name": "SQL",
+      "tier": "related",
+      "weight": 0.9
+    },
+    {
+      "name": "Tableau",
+      "tier": "related",
+      "weight": 0.8
+    },
+    {
+      "name": "Power BI",
+      "tier": "related",
+      "weight": 0.8
+    },
+    {
+      "name": "Python",
+      "tier": "related",
+      "weight": 0.7
+    },
+    {
+      "name": "VBA / Excel macros",
+      "tier": "related",
+      "weight": 0.8
+    },
+    {
+      "name": "Power Query",
+      "tier": "related",
+      "weight": 0.8
+    },
+    {
+      "name": "Forecasting / demand planning / S&OP",
+      "tier": "related",
+      "weight": 1.0
+    },
+    {
+      "name": "Vendor / supplier management",
+      "tier": "related",
+      "weight": 0.9
+    },
+    {
+      "name": "NetSuite / Oracle / JDE",
+      "tier": "related",
+      "weight": 0.7
+    },
+    {
+      "name": "WMS / TMS exposure",
+      "tier": "related",
+      "weight": 0.7
+    },
+    {
+      "name": "KPI dashboards / reporting",
+      "tier": "related",
+      "weight": 0.8
+    },
+    {
+      "name": "Lean / 5S / Kaizen / continuous improvement",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Six Sigma (Yellow or Green Belt in progress)",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "APICS/ASCM student membership",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Multilingual (Spanish / French / German / Mandarin)",
+      "tier": "transferable",
+      "weight": 0.6
+    }
+  ],
+  "domains": [
+    {
+      "industry": "manufacturer_cpg",
+      "multiplier": 1.4
+    },
+    {
+      "industry": "retail_ecommerce",
+      "multiplier": 1.3
+    },
+    {
+      "industry": "logistics_3pl",
+      "multiplier": 1.3
+    },
+    {
+      "industry": "automotive_aerospace",
+      "multiplier": 1.2
+    },
+    {
+      "industry": "pharma_medical_devices",
+      "multiplier": 1.1
+    },
+    {
+      "industry": "tech_saas",
+      "multiplier": 1.0
+    },
+    {
+      "industry": "food_beverage_grocery",
+      "multiplier": 1.0
+    },
+    {
+      "industry": "energy_petroleum",
+      "multiplier": 0.9
+    },
+    {
+      "industry": "government_public_sector",
+      "multiplier": 0.7
+    }
+  ],
+  "class_years": [
+    {
+      "year": "freshman",
+      "expected_sections": ["education", "extracurriculars"],
+      "gpa_required_above": null,
+      "min_quantified_bullets": 0,
+      "internship_required": false
+    },
+    {
+      "year": "sophomore",
+      "expected_sections": ["education", "work", "projects"],
+      "gpa_required_above": 3.0,
+      "min_quantified_bullets": 2,
+      "internship_required": false
+    },
+    {
+      "year": "junior",
+      "expected_sections": ["education", "work", "projects", "leadership"],
+      "gpa_required_above": 3.3,
+      "min_quantified_bullets": 5,
+      "internship_required": true
+    },
+    {
+      "year": "senior",
+      "expected_sections": ["education", "work", "projects", "leadership"],
+      "gpa_required_above": 3.3,
+      "min_quantified_bullets": 7,
+      "internship_required": true
+    }
+  ],
+  "bonus_signals": [
+    "Supply Chain Management / Industrial Engineering / Operations Research major",
+    "Internship at manufacturer (P&G, Unilever, GM, Toyota, Caterpillar, Nike, PepsiCo, 3M)",
+    "Internship at retailer (Walmart, Target, Costco)",
+    "Internship at 3PL / logistics (UPS, FedEx, Maersk, DHL, Expeditors)",
+    "Co-op in supply chain / procurement / planning",
+    "APICS/ASCM student chapter membership or officer",
+    "Coursework in SCM / IE / OR / optimization / simulation electives",
+    "Sourcing / procurement / purchasing role",
+    "Demand / supply planning role (S&OP)",
+    "Lean Six Sigma Yellow/Green Belt in progress",
+    "CPIM Part 1 / CSCP / CLTD / CPSM coursework",
+    "SAP Learning Hub / SAP course completion",
+    "Python / R data project on supply chain dataset",
+    "Sustainability / ESG / circular supply chain project",
+    "Multilingual (Spanish / French / German / Mandarin)",
+    "FAA Part 107 / ITAR / GMP / HACCP awareness for vertical-specific"
+  ],
+  "disqualifiers": [
+    "no_excel_mention",
+    "no_data_analysis",
+    "no_logistics_or_supply_chain_exposure",
+    "gpa_missing_or_below_3.0_when_target_demands_3_0_plus",
+    "bachelors_in_unrelated_major_without_bridge_coursework",
+    "generic_soft_skill_bullets_without_evidence",
+    "duty_statements_without_metrics",
+    "apics_certification_listed_by_sophomore_career_stage_mismatch",
+    "over_indexing_on_unrelated_tools",
+    "no_location_flexibility",
+    "work_authorization_uncertainty",
+    "typos_in_supply_chain_or_logistics"
+  ],
+  "target_roles": [
+    "Supply Chain Analyst",
+    "Logistics Coordinator",
+    "Procurement / Sourcing",
+    "Demand Planning / S&OP",
+    "Inventory / Materials Management",
+    "Operations",
+    "Buyer / Planner",
+    "Production Planning",
+    "Transportation / Freight",
+    "Supplier / Vendor Management"
+  ]
+}

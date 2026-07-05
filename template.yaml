@@ -1,0 +1,91 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  resume-reviewer: Discord bot processes resume PDFs via Lambda.
+  HTTP API -> Lambda -> S3 -> Gemini -> Review JSON.
+
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+    AllowedValues: [prod, dev]
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 512
+    Timeout: 60
+    Architectures: [x86_64]
+    Environment:
+      Variables:
+        GEMINI_API_KEY: ""
+        PDF_BUCKET: !Ref PdfBucket
+
+Resources:
+  PdfBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "resume-reviewer-pdfs-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: AutoDeleteAfter1Day
+            Status: Enabled
+            ExpirationInDays: 1
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      NotificationConfiguration:
+        LambdaConfigurations: []  # no S3 events; Lambda invoked via API only
+
+  ReviewerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "resume-reviewer-${Stage}"
+      Handler: handler.lambda_handler
+      CodeUri: lambda/
+      Description: Process resume PDFs into scored reviews via Gemini
+      Environment:
+        Variables:
+          GEMINI_API_KEY: ""  # set via `sam deploy --parameter-overrides`
+          PDF_BUCKET: !Ref PdfBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref PdfBucket
+        - S3WritePolicy:
+            BucketName: !Ref PdfBucket  # for the auto-delete after read
+      Events:
+        ReviewApi:
+          Type: HttpApi
+          Properties:
+            Path: /review
+            Method: POST
+            ApiId: !Ref ReviewerApi
+            TimeoutInMillis: 30000
+
+  ReviewerApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Stage
+      Description: resume-reviewer API
+
+Outputs:
+  ApiUrl:
+    Description: HTTP API endpoint (POST /review)
+    Value: !Sub "https://${ReviewerApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/review"
+  PdfBucketName:
+    Description: S3 bucket for resume PDFs (auto-deletes after 1 day)
+    Value: !Ref PdfBucket
+  FunctionName:
+    Description: Lambda function name
+    Value: !Ref ReviewerFunction

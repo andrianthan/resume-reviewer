@@ -32,6 +32,10 @@ DISCORD_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "")
 REVIEW_CHANNEL_ID = int(os.environ.get("REVIEW_CHANNEL_ID", "0"))
 MAX_RESUME_BYTES = 5 * 1024 * 1024  # 5 MB cap
 
+# If RESUME_API_URL is set, route PDF processing through AWS Lambda.
+# Otherwise, fall back to local evaluate() (deterministic-only without Gemini).
+USE_REMOTE_API = bool(os.environ.get("RESUME_API_URL"))
+
 MAJORS = list_majors()  # loaded once at import
 YEARS = ["freshman", "sophomore", "junior", "senior", "grad"]
 
@@ -227,14 +231,26 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
 
     user = interaction.user
     try:
-        # Offload to thread to avoid blocking the event loop
-        review = await asyncio.to_thread(
-            evaluate,
-            sess.resume_bytes,
-            sess.major,
-            sess.class_year,
-            use_llm=bool(os.environ.get("GEMINI_API_KEY")),
-        )
+        if USE_REMOTE_API:
+            # Upload to S3, invoke Lambda, await JSON
+            from .aws_client import review_via_api, upload_pdf
+
+            s3_key = await asyncio.to_thread(
+                upload_pdf, sess.resume_bytes, user.id
+            )
+            review_data = await asyncio.to_thread(
+                review_via_api, s3_key, sess.major, sess.class_year, user.id
+            )
+            review = _review_from_dict(review_data)
+        else:
+            # Local fallback — deterministic unless GEMINI_API_KEY is set
+            review = await asyncio.to_thread(
+                evaluate,
+                sess.resume_bytes,
+                sess.major,
+                sess.class_year,
+                use_llm=bool(os.environ.get("GEMINI_API_KEY")),
+            )
     except Exception as e:  # noqa: BLE001
         log.exception("evaluate failed")
         sess.error = repr(e)
@@ -253,6 +269,10 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
         description=f"**Final score: `{review.final_score:.1f}`**",
         color=EMBED_COLOR_SUCCESS if review.final_score >= 70 else EMBED_COLOR_WARN,
     )
+    if hasattr(review, "model_dump"):
+        elapsed = (review.model_dump().get("elapsed_ms") if isinstance(review, object) else None)
+        if elapsed:
+            embed.set_footer(text=f"Processed in {elapsed}ms")
     for cat in review.categories:
         pct = (cat.score / cat.max_score * 100) if cat.max_score else 0
         body = ""
@@ -290,6 +310,31 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
 
 
 # ---------- Lifecycle ----------
+
+
+def _review_from_dict(d: dict) -> "Review":  # type: ignore[name-defined]
+    """Reconstruct a Review Pydantic model from Lambda JSON."""
+    from .models import CategoryResult, ClassYearProfile, ResumeSections, Review
+
+    return Review(
+        major=d["major"],
+        class_year=d["class_year"],
+        final_score=d["final_score"],
+        categories=[
+            CategoryResult(
+                category_key=c["category_key"],
+                score=c["score"],
+                max_score=c["max_score"],
+                evidence=c.get("evidence", []),
+                red_flags_hit=c.get("red_flags_hit", []),
+                suggestions=c.get("suggestions", []),
+            )
+            for c in d["categories"]
+        ],
+        matched_domains=d.get("matched_domains", []),
+        year_profile=ClassYearProfile(**d["year_profile"]),
+        extracted=ResumeSections(raw_text=""),
+    )
 
 async def _post_panel(bot: discord.Client, channel_id: int) -> None:
     """Post (or edit) the persistent review panel in the configured channel."""

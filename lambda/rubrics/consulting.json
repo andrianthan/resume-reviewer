@@ -1,0 +1,271 @@
+{
+  "major": "consulting",
+  "label": "Consulting / Strategy",
+  "version": 1,
+  "categories": [
+    {
+      "key": "impact",
+      "label": "Quantified Impact",
+      "weight": 0.30,
+      "rubric": "Score 0-40 on % of bullets with numbers ($, %, x, scope, headcount). Consulting screens on outcome magnitude — deal/policy/ops results, team size, timeline compressed, stakeholder count. 'Helped with a case' is invisible; '$2M cost reduction identified across 3 workstreams' is not.",
+      "red_flags": ["no_quantified_bullets_in_work", "all_bullets_vague", "duty_statements_without_outcomes"]
+    },
+    {
+      "key": "domain_fit",
+      "label": "Consulting Domain Fit",
+      "weight": 0.25,
+      "rubric": "Score 0-25 on consulting relevance of work + coursework + extracurriculars. Strong: case club officer, case competition win, MBB/OC&C/LEK/Kearney/Strategy& exposure, IB/PE/PM internship, framework-driven project. Weak: retail/food service framed without analytical framing.",
+      "red_flags": ["no_consulting_signal", "no_relevant_coursework", "no_case_prep_evidence"]
+    },
+    {
+      "key": "technical",
+      "label": "Technical (Consulting)",
+      "weight": 0.15,
+      "rubric": "Score 0-15 on Excel, PowerPoint (pyramid principle, slide design), data tools (SQL, Python, Tableau, Power BI). Pyramid principle + MECE structuring is non-negotiable. Bonus: business case frameworks (Porter, 4Cs), market sizing, financial modeling basics.",
+      "red_flags": ["missing_excel", "missing_powerpoint", "no_framework_or_structuring_evidence"]
+    },
+    {
+      "key": "format",
+      "label": "Format / ATS",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on 1-page rule, clean sections, no tables/columns, .docx + .pdf export tested, consistent date formatting. Recruiters spend 30 seconds on first pass — whitespace and scannability matter.",
+      "red_flags": ["two_column_layout", "graphics_in_header", "inconsistent_dates"]
+    },
+    {
+      "key": "brand",
+      "label": "Brand Consistency",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on LinkedIn headline + experience matching resume (school, role titles, dates). Target-school pipeline recruiters cross-check LinkedIn; mismatches raise red flags.",
+      "red_flags": ["linkedin_role_mismatch", "no_linkedin_url"]
+    },
+    {
+      "key": "extras",
+      "label": "Extras & Leadership",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on consulting club officer role, case competition win (Mercer, P&G, Hult, UVA), leadership outside work, second language, diversity org, pro bono (180 DC, Net Impact), second-language fluency for global offices.",
+      "red_flags": []
+    }
+  ],
+  "skills": [
+    {
+      "name": "Case interview preparation (MBB-style)",
+      "tier": "exact",
+      "weight": 1.5
+    },
+    {
+      "name": "Problem structuring / MECE / pyramid principle",
+      "tier": "exact",
+      "weight": 1.5
+    },
+    {
+      "name": "Excel (advanced: pivot tables, VLOOKUP, macros)",
+      "tier": "exact",
+      "weight": 1.5
+    },
+    {
+      "name": "PowerPoint (pyramid principle, slide design)",
+      "tier": "exact",
+      "weight": 1.5
+    },
+    {
+      "name": "Business case frameworks (Porter, 4Cs, 5 Forces)",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "Quantitative analysis",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "Client-ready communication / stakeholder mgmt",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "HireVue / Pymetrics / recorded case prep",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Consulting club / case prep club",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "SQL / data querying",
+      "tier": "related",
+      "weight": 1.0
+    },
+    {
+      "name": "Python (pandas, numpy)",
+      "tier": "related",
+      "weight": 0.9
+    },
+    {
+      "name": "Tableau / Power BI",
+      "tier": "related",
+      "weight": 0.8
+    },
+    {
+      "name": "Financial modeling basics",
+      "tier": "related",
+      "weight": 0.9
+    },
+    {
+      "name": "Market research / market sizing",
+      "tier": "related",
+      "weight": 1.0
+    },
+    {
+      "name": "Process improvement / Lean Six Sigma",
+      "tier": "related",
+      "weight": 0.8
+    },
+    {
+      "name": "CRM / Salesforce basics",
+      "tier": "related",
+      "weight": 0.6
+    },
+    {
+      "name": "Excel VBA macros",
+      "tier": "related",
+      "weight": 0.8
+    },
+    {
+      "name": "Verbal / written communication",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Leadership",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Presentation / public speaking",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Teamwork / collaboration",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Initiative / ownership",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Time management",
+      "tier": "transferable",
+      "weight": 0.6
+    }
+  ],
+  "domains": [
+    {
+      "industry": "mckinsey_bcg_bain",
+      "multiplier": 1.4
+    },
+    {
+      "industry": "boutique_consulting",
+      "multiplier": 1.3
+    },
+    {
+      "industry": "big4_advisory",
+      "multiplier": 1.2
+    },
+    {
+      "industry": "investment_banking",
+      "multiplier": 1.2
+    },
+    {
+      "industry": "tech_product_management",
+      "multiplier": 1.1
+    },
+    {
+      "industry": "private_equity_vc",
+      "multiplier": 1.1
+    },
+    {
+      "industry": "corporate_strategy",
+      "multiplier": 1.0
+    },
+    {
+      "industry": "nonprofit_government",
+      "multiplier": 0.7
+    },
+    {
+      "industry": "retail_food_service",
+      "multiplier": 0.6
+    }
+  ],
+  "class_years": [
+    {
+      "year": "freshman",
+      "expected_sections": ["education", "extracurriculars"],
+      "gpa_required_above": null,
+      "min_quantified_bullets": 0,
+      "internship_required": false
+    },
+    {
+      "year": "sophomore",
+      "expected_sections": ["education", "work", "projects", "leadership"],
+      "gpa_required_above": 3.7,
+      "min_quantified_bullets": 3,
+      "internship_required": false
+    },
+    {
+      "year": "junior",
+      "expected_sections": ["education", "work", "projects", "leadership"],
+      "gpa_required_above": 3.7,
+      "min_quantified_bullets": 5,
+      "internship_required": true
+    },
+    {
+      "year": "senior",
+      "expected_sections": ["education", "work", "leadership"],
+      "gpa_required_above": 3.6,
+      "min_quantified_bullets": 7,
+      "internship_required": true
+    }
+  ],
+  "bonus_signals": [
+    "Target school (HYPSM, Ivy+, top 20 / Russell Group / top EU)",
+    "GPA 3.7+ (MBB screen) / 3.5+ (Big 4 advisory)",
+    "Consulting club officer / case prep club leadership",
+    "Case competition finalist or winner (Mercer, P&G, Hult, UVA)",
+    "Prestigious internship brand (BB IB, FAANG PM, top PE/VC, MBB return)",
+    "Leadership in extracurricular (president, captain, founder)",
+    "Second language (Spanish, Mandarin, German, French, Portuguese, Arabic)",
+    "Pro bono consulting (180 DC, Net Impact)",
+    "Diversity org membership (BMO, NBMBAA, SHPE)",
+    "Military / veteran background"
+  ],
+  "disqualifiers": [
+    "gpa_below_3.5_with_no_exceptional_signal",
+    "no_extracurriculars_or_leadership",
+    "no_quantitative_coursework",
+    "typos_or_formatting_errors",
+    "irrelevant_skills_with_no_impact_framing",
+    "no_case_prep_evidence",
+    "weak_generic_cover_letter",
+    "spelling_mbb_firm_names_wrong",
+    "gpa_listed_without_scale",
+    "lack_of_impact_metrics_on_bullets",
+    "withdrew_from_recruiting_process_previously"
+  ],
+  "target_roles": [
+    "Management Consulting",
+    "Strategy Consulting",
+    "Boutique Consulting",
+    "Big 4 Advisory",
+    "Strategy & Operations",
+    "Corporate Strategy",
+    "Tech Strategy",
+    "Healthcare Consulting",
+    "Energy Consulting",
+    "Public Sector Consulting"
+  ]
+}

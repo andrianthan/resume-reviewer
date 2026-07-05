@@ -1,0 +1,269 @@
+{
+  "major": "ops-hr",
+  "label": "Operations / HR / People Ops",
+  "version": 1,
+  "categories": [
+    {
+      "key": "impact",
+      "label": "Quantified People-Ops Impact",
+      "weight": 0.30,
+      "rubric": "Score 0-40 on % of bullets with volume/range metrics (resumes screened, interviews scheduled, hires supported, onboarding docs, events coordinated, attendance). 'Assisted with recruiting' = 0; 'Screened 240+ resumes, coordinated 38 interview panels, built onboarding tracker adopted by 3 teams' = strong. Ops/HR rewards scale and process rigor.",
+      "red_flags": ["no_quantified_bullets", "vague_assisted_with_recruiting", "duty_statements_without_scale"]
+    },
+    {
+      "key": "domain_fit",
+      "label": "HR / Ops Domain Fit",
+      "weight": 0.25,
+      "rubric": "Score 0-25 on HR/people-ops/ops-program relevance. Strong: prior HR/people-ops/recruiting internship, SHRM student chapter officer, event coordination at scale, admin/RA/customer-service work framed as people-facing. Weak: purely solo/technical background with no team contact.",
+      "red_flags": ["no_people_facing_experience", "no_relevant_coursework", "no_specific_track_chosen"]
+    },
+    {
+      "key": "technical",
+      "label": "Tools & Systems",
+      "weight": 0.15,
+      "rubric": "Score 0-15 on named tools actually used. Exact: ATS (Greenhouse, Lever, Jobvite, Taleo), HRIS (Workday, BambooHR, ADP, SAP SuccessFactors), LinkedIn Recruiter / Boolean search. Related: Excel/Sheets, PowerPoint, Tableau, Asana/Smartsheet. Penalize 'familiar with' padding on tools never actually used.",
+      "red_flags": ["lists_ats_or_hris_never_used", "no_quantitative_tool_evidence"]
+    },
+    {
+      "key": "format",
+      "label": "Format / ATS",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on 1-page rule, clean sections, no tables/columns, .docx + .pdf export tested, consistent dates. HR screens hundreds of resumes per req — whitespace and scannability matter.",
+      "red_flags": ["two_column_layout", "graphics_in_header", "inconsistent_dates"]
+    },
+    {
+      "key": "brand",
+      "label": "Discretion & Brand Signals",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on LinkedIn headline + experience matching resume, plus explicit discretion/confidentiality framing on roles that handled sensitive data. HR/recruiting requires trust signals — show you understand confidentiality, not just claim it.",
+      "red_flags": ["no_discretion_framing", "linkedin_role_mismatch"]
+    },
+    {
+      "key": "extras",
+      "label": "Extras & Process Rigor",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on SHRM student chapter membership, aPHR / SHRM-CP path, LinkedIn Learning / Coursera HR certs, peer mentoring / tutoring, DEI initiative involvement, AI/automation fluency for HR workflows, bias-for-action anecdotes (built a tracker unprompted, fixed a process).",
+      "red_flags": []
+    }
+  ],
+  "skills": [
+    {
+      "name": "Workday",
+      "tier": "exact",
+      "weight": 1.5
+    },
+    {
+      "name": "ATS experience (Greenhouse, Lever, Jobvite, Taleo)",
+      "tier": "exact",
+      "weight": 1.5
+    },
+    {
+      "name": "HRIS (BambooHR, ADP, SAP SuccessFactors)",
+      "tier": "exact",
+      "weight": 1.3
+    },
+    {
+      "name": "Interview scheduling / calendar coordination",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "Resume screening / candidate sourcing",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "Onboarding coordination",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Full-cycle recruiting basics",
+      "tier": "exact",
+      "weight": 1.2
+    },
+    {
+      "name": "Boolean search / LinkedIn Recruiter",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Recruiting metrics / pipeline reporting",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Compliance basics (I-9, FMLA, EEO, labor law)",
+      "tier": "exact",
+      "weight": 1.0
+    },
+    {
+      "name": "Excel / Google Sheets (pivot tables, VLOOKUP, formulas)",
+      "tier": "related",
+      "weight": 1.0
+    },
+    {
+      "name": "Microsoft Office / PowerPoint / Word",
+      "tier": "related",
+      "weight": 0.8
+    },
+    {
+      "name": "Data analysis & reporting",
+      "tier": "related",
+      "weight": 0.8
+    },
+    {
+      "name": "Tableau / HR analytics dashboards",
+      "tier": "related",
+      "weight": 0.7
+    },
+    {
+      "name": "Asana / Smartsheet / MS Project",
+      "tier": "related",
+      "weight": 0.7
+    },
+    {
+      "name": "Process documentation / SOPs",
+      "tier": "related",
+      "weight": 0.8
+    },
+    {
+      "name": "Payroll & benefits administration basics",
+      "tier": "related",
+      "weight": 0.6
+    },
+    {
+      "name": "Zoom / Teams / digital collaboration",
+      "tier": "related",
+      "weight": 0.5
+    },
+    {
+      "name": "DEI awareness",
+      "tier": "related",
+      "weight": 0.6
+    },
+    {
+      "name": "Communication (written + verbal)",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Discretion / confidentiality / integrity",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Attention to detail",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Empathy / interpersonal / candidate experience",
+      "tier": "transferable",
+      "weight": 0.6
+    },
+    {
+      "name": "Active listening",
+      "tier": "transferable",
+      "weight": 0.6
+    }
+  ],
+  "domains": [
+    {
+      "industry": "tech_saas",
+      "multiplier": 1.4
+    },
+    {
+      "industry": "consulting_professional_services",
+      "multiplier": 1.3
+    },
+    {
+      "industry": "financial_services",
+      "multiplier": 1.2
+    },
+    {
+      "industry": "healthcare",
+      "multiplier": 1.1
+    },
+    {
+      "industry": "consumer_retail",
+      "multiplier": 1.0
+    },
+    {
+      "industry": "education_nonprofit",
+      "multiplier": 0.9
+    },
+    {
+      "industry": "manufacturing_logistics",
+      "multiplier": 0.8
+    },
+    {
+      "industry": "government_public_sector",
+      "multiplier": 0.7
+    }
+  ],
+  "class_years": [
+    {
+      "year": "freshman",
+      "expected_sections": ["education", "extracurriculars"],
+      "gpa_required_above": null,
+      "min_quantified_bullets": 0,
+      "internship_required": false
+    },
+    {
+      "year": "sophomore",
+      "expected_sections": ["education", "work", "leadership"],
+      "gpa_required_above": 3.0,
+      "min_quantified_bullets": 2,
+      "internship_required": false
+    },
+    {
+      "year": "junior",
+      "expected_sections": ["education", "work", "projects", "leadership"],
+      "gpa_required_above": 3.2,
+      "min_quantified_bullets": 4,
+      "internship_required": true
+    },
+    {
+      "year": "senior",
+      "expected_sections": ["education", "work", "projects", "leadership"],
+      "gpa_required_above": 3.2,
+      "min_quantified_bullets": 6,
+      "internship_required": true
+    }
+  ],
+  "bonus_signals": [
+    "Prior HR / people-ops / recruiting internship",
+    "People-facing role at scale (RA, customer service, front desk, hospitality) with volume metrics",
+    "SHRM student chapter leadership (president, officer, events lead)",
+    "Event coordination at scale (career fairs, recruiting days) with headcount metrics",
+    "Demonstrated discretion handling confidential/sensitive info",
+    "Named ATS/HRIS hands-on experience (Workday, Greenhouse, Lever, BambooHR)",
+    "SHRM / HRCI student membership or aPHR path",
+    "DEI initiative involvement",
+    "AI / automation fluency for HR workflows",
+    "Bias-for-action anecdotes (built a tracker unprompted, fixed a process)"
+  ],
+  "disqualifiers": [
+    "no_people_facing_experience_of_any_kind",
+    "no_discretion_or_confidentiality_framing",
+    "soft_skills_as_bare_keywords_without_examples",
+    "lists_software_never_actually_used",
+    "no_quantified_outcomes_anywhere",
+    "generic_untailored_resume",
+    "overloaded_jack_of_all_trades_objective",
+    "job_hopping_or_no_follow_through_signals"
+  ],
+  "target_roles": [
+    "Human Resources",
+    "People Operations",
+    "Talent Acquisition",
+    "Recruiting Coordinator",
+    "Program Management",
+    "Program Coordinator",
+    "Chief of Staff",
+    "Talent Management",
+    "HR Analytics",
+    "Compensation & Benefits"
+  ]
+}
