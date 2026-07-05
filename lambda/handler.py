@@ -147,39 +147,58 @@ def _meets_year_expectations(text: str, profile: dict) -> bool:
     return True
 
 
-# --- Gemini judge (inline) ---
+# --- LLM judge via OpenRouter (inline) ---
+
+import urllib.request
+
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+DEFAULT_MODEL = "google/gemini-2.5-flash"
+
 
 def _judge_category(sections_text: str, category: dict, max_score: float) -> dict:
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         return {
             "score": 0.0,
             "evidence": [],
             "red_flags_hit": [],
-            "suggestions": ["(LLM judge unavailable: GEMINI_API_KEY not set)"],
+            "suggestions": ["(LLM judge unavailable: OPENROUTER_API_KEY not set)"],
         }
+    model = os.environ.get("LLM_MODEL", DEFAULT_MODEL)
+    prompt = (
+        f"You are a strict resume reviewer for the {category['label']} category.\n\n"
+        f"Rubric: {category['rubric']}\n\n"
+        f"Resume (raw text):\n---\n{sections_text[:6000]}\n---\n\n"
+        "Return JSON with EXACTLY these keys (no extra text, no markdown fence):\n"
+        "{\n"
+        '  "score": <float 0..' + str(max_score) + ">,\n"
+        '  "evidence": [<verbatim resume line(s), max 5>],\n'
+        f'  "red_flags_hit": [<subset of red_flags: {category.get("red_flags", [])}>],\n'
+        '  "suggestions": [<actionable fix strings, max 3>]\n'
+        "}"
+    )
     try:
-        from google import genai  # type: ignore
-
-        client = genai.Client(api_key=api_key)
-        prompt = (
-            f"You are a strict resume reviewer for the {category['label']} category.\n\n"
-            f"Rubric: {category['rubric']}\n\n"
-            f"Resume (raw text):\n---\n{sections_text[:6000]}\n---\n\n"
-            "Return JSON with EXACTLY these keys (no extra text, no markdown fence):\n"
-            "{\n"
-            '  "score": <float 0..' + str(max_score) + ">,\n"
-            '  "evidence": [<verbatim resume line(s), max 5>],\n'
-            f'  "red_flags_hit": [<subset of red_flags: {category.get("red_flags", [])}>],\n'
-            '  "suggestions": [<actionable fix strings, max 3>]\n'
-            "}"
+        body = json.dumps({
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "You are a strict resume reviewer. Return valid JSON only."},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.2,
+            "response_format": {"type": "json_object"},
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            OPENROUTER_URL,
+            data=body,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
         )
-        resp = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config={"temperature": 0.2, "response_mime_type": "application/json"},
-        )
-        data = json.loads(resp.text)
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        content = data["choices"][0]["message"]["content"]
+        result = json.loads(content)
     except Exception as e:  # noqa: BLE001
         return {
             "score": 0.0,
@@ -188,10 +207,10 @@ def _judge_category(sections_text: str, category: dict, max_score: float) -> dic
             "suggestions": [f"(LLM judge error: {e!r})"],
         }
     return {
-        "score": float(max(0.0, min(max_score, data.get("score", 0)))),
-        "evidence": list(data.get("evidence", []))[:5],
-        "red_flags_hit": list(data.get("red_flags_hit", [])),
-        "suggestions": list(data.get("suggestions", []))[:3],
+        "score": float(max(0.0, min(max_score, result.get("score", 0)))),
+        "evidence": list(result.get("evidence", []))[:5],
+        "red_flags_hit": list(result.get("red_flags_hit", [])),
+        "suggestions": list(result.get("suggestions", []))[:3],
     }
 
 
