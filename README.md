@@ -1,17 +1,17 @@
 # resume-reviewer
 
-Discord bot that scores resumes against major-specific rubrics. Click a button → bot DMs → upload PDF → pick major + year → scored embed back.
+Discord bot that scores resumes against major-specific rubrics. Click a button → private thread → upload PDF → pick major → scored embed back.
 
-**Status:** code complete, tested, ready to deploy. Needs Discord bot token + Gemini key + a channel to test in.
+**Status:** code complete, tested, ready to deploy. Needs Discord bot token + optional OpenRouter key + a channel to test in.
 
 ## Flow
 
 1. Bot posts a persistent embed with **Review my resume** button in your chosen channel.
-2. Member clicks → bot DMs them: "Upload your PDF resume".
-3. Member uploads PDF (max 5 MB).
-4. Bot asks for major (consulting / marketing / ops-hr / supply-chain).
-5. Bot asks for class year (freshman / sophomore / junior / senior / grad).
-6. Bot runs evaluator + posts scored embed to DM with per-category evidence + suggestions.
+2. Member clicks → bot creates a private review thread.
+3. Member uploads PDF (max 5 MB) in that thread.
+4. Bot asks for major (consulting / marketing / ops-hr / supply-chain / tech).
+5. Bot runs evaluator + posts scored embed to the thread with per-category evidence + suggestions.
+6. User can delete the thread with the review embed button; otherwise it auto-deletes after 1 hour.
 7. Resume bytes zeroed in memory immediately after review.
 
 ## Setup
@@ -31,7 +31,7 @@ cp .env.example .env
 | --------------------- | ------------------------------------------------------------------------------- |
 | `DISCORD_BOT_TOKEN`   | https://discord.com/developers/applications → New App → Bot → Reset Token       |
 | `REVIEW_CHANNEL_ID`   | Discord → enable Developer Mode → right-click channel → Copy ID                |
-| `GEMINI_API_KEY`      | https://aistudio.google.com/apikey (optional — deterministic mode if unset)     |
+| `OPENROUTER_API_KEY`  | https://openrouter.ai/keys (optional — deterministic fallback if unset)         |
 
 ### Discord bot setup (one-time, in dev portal)
 
@@ -68,7 +68,7 @@ source .venv/bin/activate
 python -m pytest tests/ -v
 ```
 
-5 tests cover rubric loading, skill extraction, and deterministic evaluation across all 4 majors.
+5 tests cover rubric loading, skill extraction, and deterministic evaluation across all 5 majors.
 
 ## Rubric packs
 
@@ -78,6 +78,7 @@ python -m pytest tests/ -v
 | marketing    | `rubrics/marketing.json`        | Synthesized from Reddit + JD research        |
 | ops-hr       | `rubrics/ops-hr.json`           | Synthesized from Reddit + JD research        |
 | supply-chain | `rubrics/supply-chain.json`     | Synthesized from Reddit + JD research        |
+| tech         | `rubrics/tech.json`             | Modeled from SWE hiring-agent criteria       |
 
 **Caveat:** rubric data built from documented recruiting consensus (Reddit blocked during research). Re-derive from live JDs before production. See `SCHEMA.md` → "Sourcing caveat".
 
@@ -86,10 +87,10 @@ python -m pytest tests/ -v
 ```
 src/
   __init__.py
-  bot.py            # Discord client + button/DM flow
+  bot.py            # Discord client + private-thread flow
   evaluator.py      # PDF→text, skill match, domain/year adjust, scoring
   pdf_extract.py    # PyMuPDF wrapper
-  llm_judge.py      # Gemini per-category judge (optional)
+  llm_judge.py      # OpenRouter per-category judge (optional)
   rubric_loader.py  # Load rubric JSON → Pydantic
   state.py          # Per-user conversation state machine
   models.py         # Pydantic models matching SCHEMA.md
@@ -98,8 +99,9 @@ tests/
 rubrics/
   consulting.json
   marketing.json
-  ops-hr.json
-  supply-chain.json
+	  ops-hr.json
+	  supply-chain.json
+	  tech.json
 SCHEMA.md           # Pydantic schema + scoring formula
 requirements.txt
 .env.example
@@ -108,7 +110,7 @@ requirements.txt
 ## Next steps
 
 1. Drop your `DISCORD_BOT_TOKEN` + `REVIEW_CHANNEL_ID` into `.env`.
-2. Add `GEMINI_API_KEY` for real LLM-scored categories (else deterministic stub).
+2. Add `OPENROUTER_API_KEY` for real LLM-scored categories (else deterministic fallback).
 3. `python -m src.bot` → test the flow end-to-end.
 4. Re-run rubric research when WebFetch works to swap consensus data for live frequencies.
 5. Manual upstream PR if you ever fork this externally.

@@ -239,7 +239,7 @@ async def review(resume_pdf: bytes, major: str, class_year: ClassYear) -> Review
 
 ## Open questions
 
-- LLM backend: Gemini (existing) vs Ollama (private for resume content)
+- LLM backend: OpenRouter by default; local/private backend still open.
 - Where to host bot: same VPS as job-board, or new?
 - Member auth: AKPsi roster verify (roster CSV upload by officer)?
 - Multi-major picker: per-review slash arg, or persistent user setting (`/set-major`)?

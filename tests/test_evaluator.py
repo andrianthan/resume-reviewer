@@ -41,6 +41,7 @@ def test_list_majors() -> None:
     assert "marketing" in majors
     assert "ops-hr" in majors
     assert "supply-chain" in majors
+    assert "tech" in majors
 
 
 def test_load_consulting_rubric_shape() -> None:
@@ -79,6 +80,8 @@ def test_evaluate_all_majors_dont_explode() -> None:
         review = evaluate(major=major, class_year="sophomore", text=FIXTURE, use_llm=False)
         assert review.final_score >= 0.0
         assert len(review.categories) >= 4  # every rubric has at least 4 categories
+        assert 0.0 <= review.final_score <= 100.0
+        assert round(sum(c.max_score for c in review.categories), 2) == 100.0
         # All category weights should sum to 1.0 (validated via Pydantic on load)
 
 

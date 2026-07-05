@@ -47,7 +47,7 @@ REVIEW_CHANNEL_ID = int(os.environ.get("REVIEW_CHANNEL_ID", "0"))
 MAX_RESUME_BYTES = 5 * 1024 * 1024  # 5 MB cap
 
 # If RESUME_API_URL is set, route PDF processing through AWS Lambda.
-# Otherwise, fall back to local evaluate() (deterministic-only without Gemini).
+# Otherwise, fall back to local evaluate() (deterministic-only without OpenRouter).
 USE_REMOTE_API = bool(os.environ.get("RESUME_API_URL"))
 
 MAJORS = list_majors()  # loaded once at import
@@ -56,6 +56,8 @@ YEARS = ["freshman", "sophomore", "junior", "senior", "grad"]
 EMBED_COLOR_PRIMARY = 0x5B6CFF
 EMBED_COLOR_SUCCESS = 0x2BB673
 EMBED_COLOR_WARN = 0xE0A92B
+DISCORD_FIELD_NAME_LIMIT = 256
+REVIEW_FIELD_VALUE_LIMIT = 500
 
 # Module-level handle to the running client, set in on_ready. Avoids
 # `message._state.client` (private) and `message.client` (doesn't exist)
@@ -67,6 +69,14 @@ def _get_client() -> discord.Client:
     if _CLIENT is None:
         raise RuntimeError("bot client not initialized; on_ready hasn't fired")
     return _CLIENT
+
+
+def _clip(text: object, limit: int) -> str:
+    """Keep generated embed content inside Discord's hard field limits."""
+    value = str(text).strip()
+    if len(value) <= limit:
+        return value
+    return value[: max(0, limit - 1)].rstrip() + "…"
 
 
 # ---------- View / Components ----------
@@ -376,12 +386,8 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
             )
             review = _review_from_dict(review_data)
         else:
-            # Local fallback — deterministic unless OPENROUTER_API_KEY
-            # (or legacy GEMINI_API_KEY) is set.
-            use_llm = bool(
-                os.environ.get("OPENROUTER_API_KEY")
-                or os.environ.get("GEMINI_API_KEY")
-            )
+            # Local fallback is deterministic unless OpenRouter is configured.
+            use_llm = bool(os.environ.get("OPENROUTER_API_KEY"))
             review = await asyncio.to_thread(
                 evaluate,
                 sess.resume_bytes,
@@ -427,16 +433,26 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
             embed.set_footer(text=f"Processed in {elapsed}ms")
     for cat in review.categories:
         pct = (cat.score / cat.max_score * 100) if cat.max_score else 0
-        body = ""
+        body_parts = []
         if cat.evidence:
-            body += "**Evidence:**\n" + "\n".join(f"• {e}" for e in cat.evidence[:3]) + "\n"
+            body_parts.append(
+                "**Evidence:**\n"
+                + "\n".join(f"• {_clip(e, 160)}" for e in cat.evidence[:2])
+            )
         if cat.red_flags_hit:
-            body += "**Red flags:** " + ", ".join(cat.red_flags_hit) + "\n"
+            body_parts.append("**Red flags:** " + _clip(", ".join(cat.red_flags_hit), 220))
         if cat.suggestions:
-            body += "**Suggestions:**\n" + "\n".join(f"→ {s}" for s in cat.suggestions[:2])
+            body_parts.append(
+                "**Suggestions:**\n"
+                + "\n".join(f"→ {_clip(s, 160)}" for s in cat.suggestions[:2])
+            )
+        body = "\n".join(body_parts)
         embed.add_field(
-            name=f"{cat.category_key} ({cat.score:.1f}/{cat.max_score}) — {pct:.0f}%",
-            value=body or "_—_",
+            name=_clip(
+                f"{cat.category_key} ({cat.score:.1f}/{cat.max_score}) — {pct:.0f}%",
+                DISCORD_FIELD_NAME_LIMIT,
+            ),
+            value=_clip(body or "_—_", REVIEW_FIELD_VALUE_LIMIT),
             inline=False,
         )
     if review.matched_domains:
@@ -446,19 +462,38 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
             inline=False,
         )
 
-    # Build the delete-thread view
-    delete_view = DeleteThreadView(thread_id=sess.thread_id, user_id=user.id)
-
-    # Post into the private thread the user owns (not DM, not channel).
+    # Post into the private thread the user owns (not DM, not channel). If
+    # Discord rejects the embed, do not claim success silently.
+    posted_to_thread = False
+    post_error: str | None = None
     if sess.thread_id:
         try:
             thread = await _get_client().fetch_channel(sess.thread_id)  # type: ignore[attr-defined]
             if isinstance(thread, discord.Thread):
+                delete_view = DeleteThreadView(thread_id=sess.thread_id, user_id=user.id)
                 await thread.send(embed=embed, view=delete_view)
-        except (discord.NotFound, discord.HTTPException):
-            pass
-    # Also keep an ephemeral confirmation in the channel (visible to nobody but user)
-    await interaction.followup.send("✅ Done. Check your review thread.", ephemeral=True)
+                posted_to_thread = True
+            else:
+                post_error = f"Fetched channel was {type(thread).__name__}, not Thread"
+                log.warning("review post skipped for thread_id=%s: %s", sess.thread_id, post_error)
+        except (discord.NotFound, discord.HTTPException) as e:
+            post_error = repr(e)
+            log.exception("failed to post review embed to thread_id=%s", sess.thread_id)
+    else:
+        post_error = "session had no thread_id"
+
+    # Also keep an ephemeral confirmation in the channel (visible to nobody but user).
+    if posted_to_thread:
+        await interaction.followup.send("✅ Done. Check your review thread.", ephemeral=True)
+    else:
+        await interaction.followup.send(
+            content=(
+                "⚠️ I generated the review, but couldn't post it in the thread. "
+                f"Showing it here instead. `{post_error}`"
+            ),
+            embed=embed,
+            ephemeral=True,
+        )
 
     # Cleanup
     sess.resume_bytes = None

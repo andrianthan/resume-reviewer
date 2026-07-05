@@ -1,0 +1,167 @@
+{
+  "major": "tech",
+  "label": "Tech / Software Engineering",
+  "version": 2,
+  "categories": [
+    {
+      "key": "basics",
+      "label": "Basics & Education",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on contact info, education (school, major, grad date, GPA if strong), and overall presentation. Strong: clear degree + grad date + contact. Weak: missing grad date, no GPA context, typos in school names.",
+      "red_flags": ["no_graduation_date", "no_school_listed"]
+    },
+    {
+      "key": "education",
+      "label": "Coursework & Learning",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on relevant CS coursework: data structures, algorithms, OS, distributed systems, ML, databases. Strong: specific named courses with grades or projects tied to them. Weak: no coursework section or only generic 'Intro to CS'.",
+      "red_flags": ["no_relevant_coursework"]
+    },
+    {
+      "key": "technical_skills",
+      "label": "Technical Skills",
+      "weight": 0.20,
+      "rubric": "Score 0-20 on languages, frameworks, tools, infra. Strong: production stack (Python/Go/Rust/Java/TS), cloud (AWS/GCP), Docker/K8s, SQL, Git. Weak: only 'Microsoft Office' or no skills section.",
+      "red_flags": ["missing_git", "no_languages_listed", "only_office_tools"]
+    },
+    {
+      "key": "self_projects",
+      "label": "Self / Side Projects",
+      "weight": 0.15,
+      "rubric": "Score 0-15 on side projects: shipped product, real users, open source. Strong: personal site, deployed app with users, technical blog. Weak: no projects outside class.",
+      "red_flags": ["no_projects_outside_class"]
+    },
+    {
+      "key": "open_source",
+      "label": "Open Source",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on open-source contributions: PRs merged to big projects, personal repos with stars, Hacktoberfest, GSoC. Strong: real merged PRs, maintainer of a small project. Weak: zero.",
+      "red_flags": []
+    },
+    {
+      "key": "production",
+      "label": "Production / Work Experience",
+      "weight": 0.20,
+      "rubric": "Score 0-20 on internships, co-ops, research, or production engineering. Strong: shipped code to real users, on-call, PRs reviewed, scale (users/requests/data). Weak: 'helped with testing' only.",
+      "red_flags": ["no_engineering_internship", "all_bullets_vague"]
+    },
+    {
+      "key": "awards",
+      "label": "Awards & Recognition",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on hackathon wins/finalists, ICPC, dean's list, scholarships, research publications. Bonus for selective recognition (TreeHacks, CalHacks, MIT/Harvard prize).",
+      "red_flags": []
+    },
+    {
+      "key": "impact",
+      "label": "Quantified Impact",
+      "weight": 0.05,
+      "rubric": "Score 0-5 on % of bullets with numbers. Tech values: PRs merged, latency reduced, requests/sec, test coverage, build time. Numbers > words.",
+      "red_flags": ["no_quantified_bullets"]
+    }
+  ],
+  "skills": [
+    { "name": "Python", "tier": "exact", "weight": 1.2 },
+    { "name": "JavaScript", "tier": "exact", "weight": 1.0 },
+    { "name": "TypeScript", "tier": "exact", "weight": 1.1 },
+    { "name": "Java", "tier": "exact", "weight": 1.0 },
+    { "name": "Go", "tier": "exact", "weight": 1.0 },
+    { "name": "Rust", "tier": "exact", "weight": 0.9 },
+    { "name": "C++", "tier": "exact", "weight": 1.0 },
+    { "name": "C", "tier": "exact", "weight": 0.8 },
+    { "name": "React", "tier": "exact", "weight": 1.1 },
+    { "name": "Next.js", "tier": "exact", "weight": 1.0 },
+    { "name": "Node.js", "tier": "exact", "weight": 1.0 },
+    { "name": "Django", "tier": "exact", "weight": 0.8 },
+    { "name": "Flask", "tier": "exact", "weight": 0.8 },
+    { "name": "FastAPI", "tier": "exact", "weight": 0.8 },
+    { "name": "Spring", "tier": "exact", "weight": 0.7 },
+    { "name": "Git", "tier": "exact", "weight": 1.0 },
+    { "name": "Linux", "tier": "exact", "weight": 0.9 },
+    { "name": "Docker", "tier": "exact", "weight": 1.0 },
+    { "name": "Kubernetes", "tier": "exact", "weight": 1.0 },
+    { "name": "AWS", "tier": "exact", "weight": 1.1 },
+    { "name": "GCP", "tier": "exact", "weight": 0.9 },
+    { "name": "Azure", "tier": "exact", "weight": 0.8 },
+    { "name": "Terraform", "tier": "exact", "weight": 0.8 },
+    { "name": "PostgreSQL", "tier": "exact", "weight": 0.9 },
+    { "name": "MySQL", "tier": "exact", "weight": 0.7 },
+    { "name": "MongoDB", "tier": "exact", "weight": 0.7 },
+    { "name": "Redis", "tier": "exact", "weight": 0.7 },
+    { "name": "DynamoDB", "tier": "exact", "weight": 0.7 },
+    { "name": "REST", "tier": "exact", "weight": 0.8 },
+    { "name": "GraphQL", "tier": "exact", "weight": 0.7 },
+    { "name": "gRPC", "tier": "exact", "weight": 0.6 },
+    { "name": "TensorFlow", "tier": "exact", "weight": 0.8 },
+    { "name": "PyTorch", "tier": "exact", "weight": 0.8 },
+    { "name": "scikit-learn", "tier": "exact", "weight": 0.7 },
+    { "name": "pandas", "tier": "exact", "weight": 0.7 },
+    { "name": "NumPy", "tier": "exact", "weight": 0.6 },
+    { "name": "SQL", "tier": "related", "weight": 0.8 },
+    { "name": "NoSQL", "tier": "related", "weight": 0.6 },
+    { "name": "CI/CD", "tier": "exact", "weight": 0.9 },
+    { "name": "Jenkins", "tier": "exact", "weight": 0.7 },
+    { "name": "GitHub Actions", "tier": "exact", "weight": 0.8 },
+    { "name": "pytest", "tier": "exact", "weight": 0.7 },
+    { "name": "JUnit", "tier": "exact", "weight": 0.6 },
+    { "name": "Agile", "tier": "exact", "weight": 0.6 },
+    { "name": "Scrum", "tier": "exact", "weight": 0.6 },
+    { "name": "microservices", "tier": "exact", "weight": 0.7 },
+    { "name": "system design", "tier": "exact", "weight": 0.8 },
+    { "name": "algorithms", "tier": "exact", "weight": 0.7 },
+    { "name": "data structures", "tier": "exact", "weight": 0.7 },
+    { "name": "OOP", "tier": "exact", "weight": 0.5 },
+    { "name": "Machine Learning", "tier": "related", "weight": 0.8 },
+    { "name": "Deep Learning", "tier": "related", "weight": 0.7 },
+    { "name": "NLP", "tier": "related", "weight": 0.6 },
+    { "name": "Computer Vision", "tier": "related", "weight": 0.6 },
+    { "name": "Tableau", "tier": "transferable", "weight": 0.4 },
+    { "name": "Excel", "tier": "transferable", "weight": 0.3 },
+    { "name": "PowerPoint", "tier": "transferable", "weight": 0.3 },
+    { "name": "communication", "tier": "transferable", "weight": 0.4 },
+    { "name": "leadership", "tier": "transferable", "weight": 0.4 },
+    { "name": "teamwork", "tier": "transferable", "weight": 0.4 }
+  ],
+  "domains": [
+    { "industry": "big_tech", "multiplier": 1.4 },
+    { "industry": "ai_ml", "multiplier": 1.4 },
+    { "industry": "saas", "multiplier": 1.3 },
+    { "industry": "fintech", "multiplier": 1.2 },
+    { "industry": "cybersecurity", "multiplier": 1.2 },
+    { "industry": "gaming", "multiplier": 1.1 },
+    { "industry": "edtech", "multiplier": 1.0 },
+    { "industry": "consulting", "multiplier": 0.9 },
+    { "industry": "retail", "multiplier": 0.7 }
+  ],
+  "class_years": [
+    { "year": "freshman", "expected_sections": ["education", "projects"], "gpa_required_above": null, "min_quantified_bullets": 0, "internship_required": false },
+    { "year": "sophomore", "expected_sections": ["education", "work", "projects", "leadership"], "gpa_required_above": 3.0, "min_quantified_bullets": 3, "internship_required": false },
+    { "year": "junior", "expected_sections": ["education", "work", "projects", "leadership"], "gpa_required_above": 3.2, "min_quantified_bullets": 5, "internship_required": true },
+    { "year": "senior", "expected_sections": ["education", "work", "leadership"], "gpa_required_above": 3.3, "min_quantified_bullets": 7, "internship_required": true }
+  ],
+  "bonus_signals": [
+    "Open-source PRs merged to major projects (React, Vue, TensorFlow, etc.)",
+    "ICPC / competitive programming",
+    "Hackathon win/finalist at major hack (TreeHacks, HackMIT, CalHacks, PennApps)",
+    "Personal site with real project demos",
+    "GitHub with active contribution graph + 10+ repos",
+    "Technical blog (dev.to, Medium, personal) with 5+ posts"
+  ],
+  "disqualifiers": [
+    "no_graduation_date",
+    "gpa_below_2.5_and_no_explanation",
+    "no_github_or_no_projects",
+    "spelling_errors_in_language_names"
+  ],
+  "target_roles": [
+    "Software Engineering Intern",
+    "Full-Stack SWE Intern",
+    "Backend SWE Intern",
+    "Frontend SWE Intern",
+    "ML Engineer Intern",
+    "Data Engineer Intern",
+    "iOS / Android Intern",
+    "Site Reliability Engineer Intern",
+    "Security Engineer Intern"
+  ]
+}

@@ -60,14 +60,8 @@ SECTION_PATTERNS = {
     "leadership": r"(?im)^\s*(leadership|activities|extracurriculars|involvement)\s*$",
     "skills": r"(?im)^\s*(skills|technical\s+skills)\s*$",
 }
-CATEGORY_MAX = {
-    "impact": 40.0,
-    "domain_fit": 25.0,
-    "technical": 15.0,
-    "format": 10.0,
-    "brand": 10.0,
-    "extras": 10.0,
-}
+def _category_max(category: dict) -> float:
+    return round(float(category["weight"]) * 100.0, 2)
 
 
 def _split_sections(text: str) -> dict[str, list[str]]:
@@ -103,8 +97,14 @@ def _extract_skills(text: str) -> list[str]:
 
 def _skill_matches(skills: list[str], rule_name: str) -> bool:
     needle = str(rule_name).lower()
+    short_needle = len(re.sub(r"[^a-z0-9]", "", needle)) <= 2
     for s in skills:
-        if needle in s or s in needle:
+        haystack = s.lower()
+        if short_needle:
+            if re.search(rf"(?<![a-z0-9]){re.escape(needle)}(?![a-z0-9])", haystack):
+                return True
+            continue
+        if needle in haystack:
             return True
     return False
 
@@ -121,6 +121,36 @@ def _matched_domains(text: str, domains: list[dict]) -> list[dict]:
 def _has_quantified_bullets(text: str) -> int:
     bullets = [l for l in text.splitlines() if l.strip().startswith(("•", "-", "●"))]
     return sum(1 for b in bullets if re.search(r"\d", b))
+
+
+def _llm_judge_failed(result: dict) -> bool:
+    return (
+        float(result.get("score", 0.0)) == 0.0
+        and not result.get("evidence")
+        and any(str(s).startswith("(LLM judge") for s in result.get("suggestions", []))
+    )
+
+
+def _deterministic_category_result(
+    cat: dict,
+    max_score: float,
+    skill_hits: dict[str, list[str]],
+    skill_score: float,
+    extra_suggestions: list[str] | None = None,
+) -> dict:
+    coverage = min(1.0, skill_score / 8.0)
+    suggestions = list(extra_suggestions or [])
+    suggestions.append(f"Add more {cat['key']}-relevant bullets with quantified impact.")
+    return {
+        "category_key": cat["key"],
+        "score": round(max_score * coverage, 2),
+        "max_score": max_score,
+        "evidence": [
+            f"Matched skills: {', '.join(skill_hits['exact'][:3]) or '(none)'}"
+        ],
+        "red_flags_hit": [],
+        "suggestions": suggestions[:3],
+    }
 
 
 def _meets_year_expectations(text: str, profile: dict) -> bool:
@@ -222,15 +252,28 @@ def _evaluate(text: str, major: str, class_year: str, use_llm: bool) -> dict:
     skills = _extract_skills(text)
 
     skill_hits: dict[str, list[str]] = {"exact": [], "related": [], "transferable": []}
+    skill_score = 0.0
     for rule in rubric["skills"]:
-        if _skill_matches(skills, rule):
+        if _skill_matches(skills, rule["name"]):
             skill_hits[rule["tier"]].append(rule["name"])
+            skill_score += TIER_BASE[rule["tier"]] * float(rule.get("weight", 1.0))
 
     category_results: list[dict] = []
     for cat in rubric["categories"]:
-        max_score = CATEGORY_MAX.get(cat["key"], 10.0)
+        max_score = _category_max(cat)
         if use_llm:
             j = _judge_category(text, cat, max_score)
+            if _llm_judge_failed(j):
+                category_results.append(
+                    _deterministic_category_result(
+                        cat,
+                        max_score,
+                        skill_hits,
+                        skill_score,
+                        extra_suggestions=list(j.get("suggestions", []))[:1],
+                    )
+                )
+                continue
             category_results.append(
                 {
                     "category_key": cat["key"],
@@ -242,32 +285,11 @@ def _evaluate(text: str, major: str, class_year: str, use_llm: bool) -> dict:
                 }
             )
         else:
-            tier_bonus = (
-                len(skill_hits["exact"]) * 1.5
-                + len(skill_hits["related"]) * 0.7
-                + len(skill_hits["transferable"]) * 0.3
-            )
-            score = min(max_score, tier_bonus * (cat["weight"] * 100))
             category_results.append(
-                {
-                    "category_key": cat["key"],
-                    "score": round(score, 2),
-                    "max_score": max_score,
-                    "evidence": [
-                        f"Matched skills: {', '.join(skill_hits['exact'][:3]) or '(none)'}"
-                    ],
-                    "red_flags_hit": [],
-                    "suggestions": [
-                        f"Add more {cat['key']}-relevant bullets with quantified impact."
-                    ],
-                }
+                _deterministic_category_result(cat, max_score, skill_hits, skill_score)
             )
 
-    cat_by_key = {c["key"]: c for c in rubric["categories"]}
-    raw = sum(
-        r["score"] * cat_by_key[r["category_key"]]["weight"]
-        for r in category_results
-    )
+    raw = sum(r["score"] for r in category_results)
 
     matched = _matched_domains(text, rubric["domains"])
     if matched:
@@ -275,9 +297,10 @@ def _evaluate(text: str, major: str, class_year: str, use_llm: bool) -> dict:
         domain_adj = min(raw * mean_mult, raw * 1.5)
     else:
         domain_adj = raw
+    domain_adj = min(100.0, domain_adj)
 
     year_profile = next(p for p in rubric["class_years"] if p["year"] == class_year)
-    year_adj = domain_adj if _meets_year_expectations(text, year_profile) else domain_adj * 0.85
+    year_adj = domain_adj
 
     return {
         "major": major,
@@ -308,7 +331,7 @@ def lambda_handler(event: dict, context: Any) -> dict:
         s3_key = body["s3_key"]
         major = body["major"]
         class_year = body["class_year"]
-        use_llm = bool(os.environ.get("GEMINI_API_KEY"))
+        use_llm = bool(os.environ.get("OPENROUTER_API_KEY"))
 
         # Download PDF
         obj = s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
@@ -321,9 +344,8 @@ def lambda_handler(event: dict, context: Any) -> dict:
             print(f"warn: S3 delete failed: {e!r}")
 
         # Extract text
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        text = "\n\n".join(p.get_text() for p in doc)
-        doc.close()
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        text = "\n\n".join(page.extract_text() or "" for page in reader.pages)
 
         if not text.strip():
             return _resp(400, {"error": "PDF had no extractable text (scanned/image-only?)"})

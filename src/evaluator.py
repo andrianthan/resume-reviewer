@@ -5,6 +5,7 @@ import re
 from typing import Iterable
 
 from .models import (
+    Category,
     CategoryResult,
     ClassYearProfile,
     DomainWeight,
@@ -16,17 +17,9 @@ from .models import (
 from .pdf_extract import pdf_to_markdown
 from .rubric_loader import load_rubric
 
-# Map rubric max-score to each category — default 40 for impact, 25 for fit,
-# 15 for technical, 10 for format, 10 for brand, 10 for extras. Override per
-# rubric in future. (Matches finance example: 30+25+15+10+10+10 = 100.)
-CATEGORY_MAX = {
-    "impact": 40.0,
-    "domain_fit": 25.0,
-    "technical": 15.0,
-    "format": 10.0,
-    "brand": 10.0,
-    "extras": 10.0,
-}
+def _category_max(category: Category) -> float:
+    """Convert a rubric category weight into its score budget on a /100 scale."""
+    return round(category.weight * 100.0, 2)
 
 # Tier base values for skill matching (deterministic partial scoring).
 TIER_BASE = {"exact": 1.0, "related": 0.5, "transferable": 0.25}
@@ -99,9 +92,15 @@ def extract_sections(text: str) -> ResumeSections:
 
 def _skill_matches(skills: Iterable[str], rule: SkillRule) -> bool:
     needle = rule.name.lower()
-    # Naive: substring match on any skill token. Skip overly-broad rules.
+    # Short skills like C and Go must not match inside React or Django.
+    short_needle = len(re.sub(r"[^a-z0-9]", "", needle)) <= 2
     for s in skills:
-        if needle in s or s in needle:
+        haystack = s.lower()
+        if short_needle:
+            if re.search(rf"(?<![a-z0-9]){re.escape(needle)}(?![a-z0-9])", haystack):
+                return True
+            continue
+        if needle in haystack:
             return True
     return False
 
@@ -125,6 +124,36 @@ def _has_quantified_bullets(text: str) -> int:
         1 for b in bullets if re.search(r"\d", b)
     )
     return quantified
+
+
+def _llm_judge_failed(result: dict) -> bool:
+    return (
+        float(result.get("score", 0.0)) == 0.0
+        and not result.get("evidence")
+        and any(str(s).startswith("(LLM judge") for s in result.get("suggestions", []))
+    )
+
+
+def _deterministic_category_result(
+    cat: Category,
+    max_score: float,
+    skill_hits: dict[str, list[str]],
+    skill_score: float,
+    *,
+    extra_suggestions: list[str] | None = None,
+) -> CategoryResult:
+    coverage = min(1.0, skill_score / 8.0)
+    score = round(max_score * coverage, 2)
+    suggestions = list(extra_suggestions or [])
+    suggestions.append(f"Add more {cat.key}-relevant bullets with quantified impact.")
+    return CategoryResult(
+        category_key=cat.key,
+        score=score,
+        max_score=max_score,
+        evidence=[f"Matched skills: {', '.join(skill_hits['exact'][:3]) or '(none)'}"],
+        red_flags_hit=[],
+        suggestions=suggestions[:3],
+    )
 
 
 def _meets_year_expectations(
@@ -169,7 +198,7 @@ def evaluate(
 
     If use_llm=False, category scores are derived deterministically from
     skill matching only (useful for offline testing). If use_llm=True, each
-    category is scored by Gemini (see llm_judge.py).
+    category is scored through OpenRouter (see llm_judge.py).
     """
     if pdf_bytes is None and text is None:
         raise ValueError("evaluate() requires pdf_bytes or text")
@@ -180,18 +209,31 @@ def evaluate(
 
     # Match skills
     skill_hits: dict[str, list[str]] = {"exact": [], "related": [], "transferable": []}
+    skill_score = 0.0
     for rule in rubric.skills:
         if _skill_matches(sections.skills, rule):
             skill_hits[rule.tier].append(rule.name)
+            skill_score += TIER_BASE[rule.tier] * rule.weight
 
     # Category scores
     category_results: list[CategoryResult] = []
     for cat in rubric.categories:
-        max_score = CATEGORY_MAX.get(cat.key, 10.0)
+        max_score = _category_max(cat)
         if use_llm:
             from .llm_judge import judge_category  # local import — optional dep
 
             j = judge_category(sections, cat, max_score=max_score)
+            if _llm_judge_failed(j):
+                category_results.append(
+                    _deterministic_category_result(
+                        cat,
+                        max_score,
+                        skill_hits,
+                        skill_score,
+                        extra_suggestions=list(j.get("suggestions", []))[:1],
+                    )
+                )
+                continue
             category_results.append(
                 CategoryResult(
                     category_key=cat.key,
@@ -203,31 +245,12 @@ def evaluate(
                 )
             )
         else:
-            # Deterministic stub: blend skill hits into score
-            tier_bonus = (
-                len(skill_hits["exact"]) * 1.5
-                + len(skill_hits["related"]) * 0.7
-                + len(skill_hits["transferable"]) * 0.3
-            )
-            score = min(max_score, tier_bonus * (cat.weight * 100))
             category_results.append(
-                CategoryResult(
-                    category_key=cat.key,
-                    score=round(score, 2),
-                    max_score=max_score,
-                    evidence=[
-                        f"Matched skills: {', '.join(skill_hits['exact'][:3]) or '(none)'}"
-                    ],
-                    red_flags_hit=[],
-                    suggestions=[
-                        f"Add more {cat.key}-relevant bullets with quantified impact."
-                    ],
-                )
+                _deterministic_category_result(cat, max_score, skill_hits, skill_score)
             )
 
-    # Weighted raw total
-    cat_by_key = {c.key: c for c in rubric.categories}
-    raw = sum(r.score * cat_by_key[r.category_key].weight for r in category_results)
+    # Category max scores already sum to 100 because each max is weight * 100.
+    raw = sum(r.score for r in category_results)
 
     # Domain adjustment
     matched_domains = _matched_domains(sections, rubric.domains)
@@ -237,6 +260,7 @@ def evaluate(
         domain_adj = min(domain_adj, raw * 1.5)  # cap
     else:
         domain_adj = raw
+    domain_adj = min(100.0, domain_adj)
 
     # Class-year profile lookup + adjustment
     # Class-year calibration intentionally disabled. This is an internship

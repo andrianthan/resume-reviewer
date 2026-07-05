@@ -3,7 +3,7 @@ Transform: AWS::Serverless-2016-10-31
 
 Description: >
   resume-reviewer: Discord bot processes resume PDFs via Lambda.
-  HTTP API -> Lambda -> S3 -> Gemini -> Review JSON.
+  HTTP API -> Lambda -> S3 -> OpenRouter -> Review JSON.
 
 Parameters:
   Stage:
@@ -19,7 +19,8 @@ Globals:
     Architectures: [x86_64]
     Environment:
       Variables:
-        GEMINI_API_KEY: ""
+        OPENROUTER_API_KEY: ""
+        LLM_MODEL: "google/gemini-2.5-flash"
         PDF_BUCKET: !Ref PdfBucket
 
 Resources:
@@ -54,10 +55,11 @@ Resources:
       FunctionName: !Sub "resume-reviewer-${Stage}"
       Handler: handler.lambda_handler
       CodeUri: lambda/
-      Description: Process resume PDFs into scored reviews via Gemini
+      Description: Process resume PDFs into scored reviews via OpenRouter
       Environment:
         Variables:
-          GEMINI_API_KEY: ""  # set via `sam deploy --parameter-overrides`
+          OPENROUTER_API_KEY: ""  # set via `sam deploy --parameter-overrides`
+          LLM_MODEL: "google/gemini-2.5-flash"
           PDF_BUCKET: !Ref PdfBucket
       Policies:
         - S3ReadPolicy:
