@@ -1,0 +1,38 @@
+pageInfo:
+  title: andrianthan's home server
+  description: everything running on the VM
+  navLinks:
+    - title: GitHub
+      path: https://github.com/andrianthan
+
+appConfig:
+  theme: colorful
+  layout: grid
+  iconSize: medium
+
+sections:
+  - name: Active services
+    icon: fas fa-server
+    items:
+      - title: Resume Reviewer Bot
+        description: Discord bot for AKPsi resume scoring (channel in #resume-review-bot)
+        icon: fas fa-file-alt
+        url: https://discord.com/channels/1520921753126174732/1523086095947006204
+  - name: VM info
+    icon: fas fa-network-wired
+    items:
+      - title: Dashy (this page)
+        description: Running on port 4000
+        icon: fas fa-gauge-high
+        url: http://192.168.168.235:4000
+      - title: Resume Reviewer repo
+        description: GitHub
+        icon: fab fa-github
+        url: https://github.com/andrianthan/resume-reviewer
+  - name: To deploy
+    icon: fas fa-hourglass-half
+    items:
+      - title: Uptime monitoring
+        description: Recommended: UptimeRobot (free, hosted) — https://uptimerobot.com
+        icon: fas fa-heartbeat
+        url: https://uptimerobot.com
