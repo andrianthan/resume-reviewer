@@ -190,11 +190,13 @@ async def _begin_dm_flow(interaction: Interaction) -> None:
 
 async def _on_dm_message(message: discord.Message) -> None:
     """Handle PDF uploads + free-text in DM."""
+    bot = message._state.client  # type: ignore[attr-defined]
+    sess = bot._store.get(message.author.id)  # type: ignore[attr-defined]
     log.info(
         "DM msg from %s (%s): stage=%s attachments=%d",
         message.author,
         message.author.id,
-        message.client._store.get(message.author.id).stage,  # type: ignore[attr-defined]
+        sess.stage,
         len(message.attachments),
     )
     if message.author.bot:
@@ -202,7 +204,7 @@ async def _on_dm_message(message: discord.Message) -> None:
     if message.guild is not None:
         return  # DM only
 
-    sess = message.client._store.get(message.author.id)  # type: ignore[attr-defined]
+    sess = bot._store.get(message.author.id)  # type: ignore[attr-defined]
     if sess.stage != Stage.AWAITING_RESUME:
         # If they sent a PDF while not in the right state, give them a hint
         if message.attachments:
