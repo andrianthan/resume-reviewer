@@ -149,6 +149,17 @@ class _YearButton(discord.ui.Button):
 
 async def _begin_dm_flow(interaction: Interaction) -> None:
     user = interaction.user
+    sess = interaction.client._store.get(user.id)  # type: ignore[attr-defined]
+
+    # Dedupe: if we already started the flow for this user recently, don't
+    # send a second "Upload your resume" DM — just confirm + send ephemeral.
+    if sess.stage == Stage.AWAITING_RESUME:
+        await interaction.response.send_message(
+            f"📨 Already waiting for your PDF, {user.mention}. Check your DMs.",
+            ephemeral=True,
+        )
+        return
+
     try:
         await user.send(
             embed=discord.Embed(
@@ -168,8 +179,8 @@ async def _begin_dm_flow(interaction: Interaction) -> None:
         )
         return
 
-    sess = interaction.client._store.get(user.id)  # type: ignore[attr-defined]
     sess.stage = Stage.AWAITING_RESUME
+    log.info("Sent DM upload prompt to user_id=%s", user.id)
 
     await interaction.response.send_message(
         f"✅ Check your DMs, {user.mention}.",
