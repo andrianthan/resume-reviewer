@@ -451,8 +451,22 @@ def make_client() -> discord.Client:
 
     @client.event
     async def on_message(message: discord.Message) -> None:
-        if isinstance(message.channel, discord.DMChannel):
-            await _on_dm_message(message)
+        # Dedupe: discord.py occasionally fires on_message twice for the same
+        # id (heartbeat / reconnect retries). Track seen ids per session.
+        if not isinstance(message.channel, discord.DMChannel):
+            return
+        seen = getattr(client, "_seen_dm_ids", None)
+        if seen is None:
+            seen = set()
+            client._seen_dm_ids = seen  # type: ignore[attr-defined]
+        if message.id in seen:
+            return
+        seen.add(message.id)
+        # Bound the set so it doesn't grow forever.
+        if len(seen) > 1000:
+            # Drop the oldest half.
+            client._seen_dm_ids = set(list(seen)[-500:])  # type: ignore[attr-defined]
+        await _on_dm_message(message)
 
     return client
 
