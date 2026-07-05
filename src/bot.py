@@ -143,6 +143,51 @@ class YearPickerView(discord.ui.View):
         self.user_id = user_id
 
 
+class DeleteThreadView(discord.ui.View):
+    """Single 'Delete this thread' button. Only the thread owner can click."""
+
+    def __init__(self, thread_id: int, user_id: int) -> None:
+        super().__init__(timeout=3600)
+        self.thread_id = thread_id
+        self.user_id = user_id
+        self.add_item(_DeleteThreadButton())
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "Only the thread owner can delete this thread.",
+                ephemeral=True,
+            )
+            return False
+        return True
+
+
+class _DeleteThreadButton(discord.ui.Button):
+    def __init__(self) -> None:
+        super().__init__(
+            label="Delete this thread",
+            style=discord.ButtonStyle.danger,
+            custom_id="resume_review:delete_thread",
+            emoji="🗑️",
+        )
+
+    async def callback(self, interaction: Interaction) -> None:
+        await interaction.response.send_message(
+            "🗑️ Deleting thread in 3 seconds…",
+            ephemeral=True,
+        )
+        await asyncio.sleep(3)
+        view = self.view
+        if isinstance(view, DeleteThreadView):
+            try:
+                chan = _get_client().get_channel(view.thread_id)
+                if isinstance(chan, discord.Thread):
+                    await chan.delete(reason="User-initiated thread cleanup")
+                    log.info("user %s deleted thread %s", interaction.user.id, view.thread_id)
+            except (discord.NotFound, discord.HTTPException) as e:
+                log.warning("delete thread failed: %r", e)
+
+
 # ---------- Thread flow (private, in-channel) ----------
 
 async def _begin_thread_flow(interaction: Interaction) -> None:
