@@ -38,6 +38,7 @@ FIXTURE = (
 def test_list_majors() -> None:
     majors = list_majors()
     assert "consulting" in majors
+    assert "finance" in majors
     assert "marketing" in majors
     assert "ops-hr" in majors
     assert "supply-chain" in majors
@@ -62,9 +63,9 @@ def test_extract_skills() -> None:
 
 
 def test_evaluate_finance_deterministic() -> None:
-    """Run deterministic (no-LLM) eval against consulting rubric on fixture."""
-    review = evaluate(major="consulting", class_year="junior", text=FIXTURE, use_llm=False)
-    assert review.major == "consulting"
+    """Run deterministic (no-LLM) eval against finance rubric on fixture."""
+    review = evaluate(major="finance", class_year="junior", text=FIXTURE, use_llm=False)
+    assert review.major == "finance"
     assert review.class_year == "junior"
     assert 0.0 <= review.final_score <= 100.0
     cats = {c.category_key: c for c in review.categories}

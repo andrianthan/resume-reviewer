@@ -9,7 +9,7 @@ Discord bot that scores resumes against major-specific rubrics. Click a button â
 1. Bot posts a persistent embed with **Review my resume** button in your chosen channel.
 2. Member clicks â†’ bot creates a private review thread.
 3. Member uploads PDF (max 5 MB) in that thread.
-4. Bot asks for major (consulting / marketing / ops-hr / supply-chain / tech).
+4. Bot asks for major (consulting / finance / marketing / ops-hr / supply-chain / tech).
 5. Bot runs evaluator + posts scored embed to the thread with per-category evidence + suggestions.
 6. User can delete the thread with the review embed button; otherwise it auto-deletes after 1 hour.
 7. Resume bytes zeroed in memory immediately after review.
@@ -83,13 +83,14 @@ source .venv/bin/activate
 python -m pytest tests/ -v
 ```
 
-Tests cover rubric loading, skill extraction, rate limits, and deterministic evaluation across all 5 majors.
+Tests cover rubric loading, skill extraction, rate limits, and deterministic evaluation across all majors.
 
 ## Rubric packs
 
 | Major        | File                            | Source                                       |
 | ------------ | ------------------------------- | -------------------------------------------- |
 | consulting   | `rubrics/consulting.json`       | Synthesized from Reddit + JD research        |
+| finance      | `rubrics/finance.json`          | Synthesized from schema + finance research   |
 | marketing    | `rubrics/marketing.json`        | Synthesized from Reddit + JD research        |
 | ops-hr       | `rubrics/ops-hr.json`           | Synthesized from Reddit + JD research        |
 | supply-chain | `rubrics/supply-chain.json`     | Synthesized from Reddit + JD research        |

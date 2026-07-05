@@ -650,7 +650,7 @@ async def _post_panel(bot: discord.Client, channel_id: int) -> None:
         title="📝 AKPsi Resume Reviewer",
         description=(
             "Click **Review my resume** to get scored feedback on your resume.\n\n"
-            "• 5 majors supported: " + ", ".join(MAJORS) + "\n"
+            f"• {len(MAJORS)} majors supported: " + ", ".join(MAJORS) + "\n"
             "• Same scoring standard for all class years (internship review)\n"
             "• Evidence per category — not just a number\n"
             "🔒 Resume deleted after review."

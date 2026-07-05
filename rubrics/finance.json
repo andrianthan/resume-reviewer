@@ -1,0 +1,145 @@
+{
+  "major": "finance",
+  "label": "Finance / Banking",
+  "version": 2,
+  "categories": [
+    {
+      "key": "impact",
+      "label": "Quantified Impact",
+      "weight": 0.30,
+      "rubric": "Score 0-30 based on quantified bullets with $, %, x, count, AUM, deal size, transaction volume, model outputs, returns, savings, or portfolio scope. Finance screens heavily for measurable outcomes: deal value, companies covered, revenue/EBITDA impact, model accuracy, variance reduction, or pitch performance. Weak: task-only bullets with no numbers.",
+      "red_flags": ["no_quantified_bullets_in_work", "all_bullets_vague", "duty_statements_without_outcomes"]
+    },
+    {
+      "key": "domain_fit",
+      "label": "Finance Domain Fit",
+      "weight": 0.25,
+      "rubric": "Score 0-25 on relevance to finance roles. Strong: IB, PE, equity research, asset management, S&T, corporate finance, FP&A, valuation, transaction advisory, student fund, investment club, stock pitch, or finance/econ/accounting coursework. Weak: generic business interest with no finance signal.",
+      "red_flags": ["no_finance_work", "no_relevant_coursework", "no_clear_finance_narrative"]
+    },
+    {
+      "key": "technical",
+      "label": "Technical (Finance)",
+      "weight": 0.15,
+      "rubric": "Score 0-15 on finance technical toolkit: Excel, financial modeling, three-statement models, DCF, comps, precedent transactions, LBO, accounting fundamentals, valuation, Bloomberg, Capital IQ, FactSet, VBA, Python/R, SQL, Power BI/Tableau. Strong bullets show built models or used tools for analysis, not just listed keywords.",
+      "red_flags": ["missing_excel", "missing_financial_modeling", "no_valuation_or_accounting_signal"]
+    },
+    {
+      "key": "format",
+      "label": "Format / ATS",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on finance resume conventions: one page, clean sections, consistent dates, no graphics/tables that break ATS, precise role/company formatting, bullets that start with strong verbs, and no typos in firm or product names. Banking and finance screens are unforgiving on polish.",
+      "red_flags": ["two_column_layout", "graphics_in_header", "inconsistent_dates", "typos_in_firm_names"]
+    },
+    {
+      "key": "brand",
+      "label": "Brand Consistency",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on external brand and positioning: LinkedIn matches resume, finance/econ/accounting or quantitative major is clear, GPA and graduation date are present when strong, target role is obvious, and internships/clubs tell a coherent finance story.",
+      "red_flags": ["linkedin_role_mismatch", "no_linkedin_url", "no_graduation_date", "gpa_omitted_without_context"]
+    },
+    {
+      "key": "extras",
+      "label": "Extras & Leadership",
+      "weight": 0.10,
+      "rubric": "Score 0-10 on finance extras: investment club leadership, student-managed fund, AKPsi treasury/finance role, CFA Level I candidate/pass, stock pitch winner/finalist, published equity research, finance newsletter, relevant language, or leadership outside work with measurable responsibility.",
+      "red_flags": []
+    }
+  ],
+  "skills": [
+    { "name": "Excel", "tier": "exact", "weight": 1.5 },
+    { "name": "VLOOKUP", "tier": "exact", "weight": 1.0 },
+    { "name": "XLOOKUP", "tier": "exact", "weight": 1.0 },
+    { "name": "INDEX/MATCH", "tier": "exact", "weight": 1.0 },
+    { "name": "pivot tables", "tier": "exact", "weight": 1.0 },
+    { "name": "financial modeling", "tier": "exact", "weight": 1.5 },
+    { "name": "three-statement modeling", "tier": "exact", "weight": 1.4 },
+    { "name": "DCF", "tier": "exact", "weight": 1.4 },
+    { "name": "valuation", "tier": "exact", "weight": 1.3 },
+    { "name": "comps", "tier": "exact", "weight": 1.2 },
+    { "name": "comparable company analysis", "tier": "exact", "weight": 1.2 },
+    { "name": "precedent transactions", "tier": "exact", "weight": 1.1 },
+    { "name": "LBO", "tier": "exact", "weight": 1.3 },
+    { "name": "M&A", "tier": "exact", "weight": 1.2 },
+    { "name": "accretion-dilution", "tier": "exact", "weight": 1.1 },
+    { "name": "accounting", "tier": "exact", "weight": 1.0 },
+    { "name": "Bloomberg Terminal", "tier": "exact", "weight": 1.4 },
+    { "name": "Capital IQ", "tier": "exact", "weight": 1.2 },
+    { "name": "FactSet", "tier": "exact", "weight": 1.0 },
+    { "name": "pitch book", "tier": "exact", "weight": 1.0 },
+    { "name": "equity research", "tier": "exact", "weight": 1.1 },
+    { "name": "stock pitch", "tier": "exact", "weight": 1.0 },
+    { "name": "PowerPoint", "tier": "exact", "weight": 0.9 },
+    { "name": "VBA", "tier": "related", "weight": 0.9 },
+    { "name": "Python", "tier": "related", "weight": 0.9 },
+    { "name": "pandas", "tier": "related", "weight": 0.7 },
+    { "name": "NumPy", "tier": "related", "weight": 0.6 },
+    { "name": "SQL", "tier": "related", "weight": 0.8 },
+    { "name": "R", "tier": "related", "weight": 0.7 },
+    { "name": "Power BI", "tier": "related", "weight": 0.7 },
+    { "name": "Tableau", "tier": "related", "weight": 0.6 },
+    { "name": "Alteryx", "tier": "related", "weight": 0.6 },
+    { "name": "communication", "tier": "transferable", "weight": 0.6 },
+    { "name": "leadership", "tier": "transferable", "weight": 0.6 },
+    { "name": "presentation", "tier": "transferable", "weight": 0.6 },
+    { "name": "attention to detail", "tier": "transferable", "weight": 0.6 },
+    { "name": "time management", "tier": "transferable", "weight": 0.5 },
+    { "name": "teamwork", "tier": "transferable", "weight": 0.5 }
+  ],
+  "domains": [
+    { "industry": "investment_banking", "multiplier": 1.4 },
+    { "industry": "private_equity", "multiplier": 1.4 },
+    { "industry": "venture_capital", "multiplier": 1.2 },
+    { "industry": "asset_management", "multiplier": 1.2 },
+    { "industry": "equity_research", "multiplier": 1.2 },
+    { "industry": "sales_trading", "multiplier": 1.2 },
+    { "industry": "hedge_fund", "multiplier": 1.2 },
+    { "industry": "corporate_finance", "multiplier": 1.1 },
+    { "industry": "fp&a", "multiplier": 1.1 },
+    { "industry": "valuation", "multiplier": 1.1 },
+    { "industry": "transaction_advisory", "multiplier": 1.1 },
+    { "industry": "fintech", "multiplier": 1.1 },
+    { "industry": "consulting", "multiplier": 1.0 },
+    { "industry": "retail", "multiplier": 0.7 },
+    { "industry": "food_service", "multiplier": 0.6 }
+  ],
+  "class_years": [
+    { "year": "freshman", "expected_sections": ["education", "projects"], "gpa_required_above": null, "min_quantified_bullets": 0, "internship_required": false },
+    { "year": "sophomore", "expected_sections": ["education", "work", "projects", "leadership"], "gpa_required_above": 3.2, "min_quantified_bullets": 3, "internship_required": false },
+    { "year": "junior", "expected_sections": ["education", "work", "projects", "leadership"], "gpa_required_above": 3.4, "min_quantified_bullets": 5, "internship_required": true },
+    { "year": "senior", "expected_sections": ["education", "work", "leadership"], "gpa_required_above": 3.5, "min_quantified_bullets": 7, "internship_required": true }
+  ],
+  "bonus_signals": [
+    "CFA Level I candidate or passed",
+    "Investment banking internship at bulge bracket, elite boutique, or middle market bank",
+    "Private equity, asset management, hedge fund, or equity research internship",
+    "Student-managed fund or investment club leadership",
+    "Stock pitch competition winner or finalist",
+    "Published equity research or investment newsletter",
+    "Bloomberg BMC or similar market-data certification",
+    "AKPsi treasury or finance role",
+    "Finance-related founder, startup, or pro bono investing work"
+  ],
+  "disqualifiers": [
+    "no_graduation_date",
+    "gpa_below_3.0_and_no_explanation",
+    "no_excel_or_financial_modeling_signal",
+    "spelling_errors_in_firm_names",
+    "no_clear_finance_narrative",
+    "no_deal_or_valuation_language"
+  ],
+  "target_roles": [
+    "Investment Banking Summer Analyst",
+    "Private Equity Intern",
+    "Sales & Trading Summer Analyst",
+    "Equity Research Intern",
+    "Asset Management Intern",
+    "Hedge Fund Intern",
+    "Corporate Finance Intern",
+    "FP&A Intern",
+    "Valuation Intern",
+    "Transaction Advisory Intern",
+    "Wealth Management Intern",
+    "Fintech Intern"
+  ]
+}
