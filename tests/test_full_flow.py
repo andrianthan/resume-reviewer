@@ -1,4 +1,4 @@
-"""End-to-end test: full review pipeline (button click → DM → upload → major → year → scored review).
+"""End-to-end test: full review pipeline (button click → DM → upload → major → scored review).
 
 Uses real PDF, real OpenRouter LLM, real evaluator. Skips Discord transport.
 """
@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.bot import _on_thread_message, _run_review  # noqa: E402
+from src.bot import _on_dm_message, _run_review  # noqa: E402
 from src.evaluator import evaluate  # noqa: E402
 from src.state import SessionStore, Stage  # noqa: E402
 
@@ -48,7 +48,7 @@ async def main() -> None:
     msg.guild = None
     msg.attachments = [attachment]
     msg.channel = MagicMock(send=AsyncMock())
-    await _on_thread_message(msg, sess)
+    await _on_dm_message(msg, sess)
     print(f"After PDF upload: stage={sess.stage}, bytes={len(sess.resume_bytes or b'')}")
     assert sess.stage == Stage.AWAITING_MAJOR
     assert sess.resume_bytes

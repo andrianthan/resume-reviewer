@@ -26,7 +26,7 @@ class RateLimitStore:
     """JSON-backed per-user counters.
 
     This is intentionally simple: one bot process, one small file, no external
-    service. It survives bot restarts, which matters for open thread caps.
+    service. It survives bot restarts, which matters for review start caps.
     """
 
     def __init__(self, path: Path) -> None:
@@ -54,9 +54,8 @@ class RateLimitStore:
     def _user(self, user_id: int) -> dict[str, Any]:
         users = self._data.setdefault("users", {})
         user = users.setdefault(str(user_id), {})
-        user.setdefault("open_threads", {})
-        user.setdefault("thread_creates", [])
-        user.setdefault("last_thread_create", 0.0)
+        user.setdefault("review_starts", [])
+        user.setdefault("last_review_start", 0.0)
         return user
 
     @staticmethod
@@ -72,32 +71,7 @@ class RateLimitStore:
                 out.append(ts)
         return out
 
-    def get_open_threads(self, user_id: int) -> dict[int, float]:
-        user = self._user(user_id)
-        out: dict[int, float] = {}
-        for thread_id, created_at in dict(user.get("open_threads", {})).items():
-            try:
-                out[int(thread_id)] = float(created_at)
-            except (TypeError, ValueError):
-                continue
-        return out
-
-    def add_open_thread(self, user_id: int, thread_id: int, created_at: float | None = None) -> None:
-        user = self._user(user_id)
-        user["open_threads"][str(thread_id)] = created_at or now_ts()
-        self._save()
-
-    def remove_open_thread(self, user_id: int, thread_id: int) -> None:
-        user = self._user(user_id)
-        user["open_threads"].pop(str(thread_id), None)
-        self._save()
-
-    def replace_open_threads(self, user_id: int, open_threads: dict[int, float]) -> None:
-        user = self._user(user_id)
-        user["open_threads"] = {str(k): v for k, v in open_threads.items()}
-        self._save()
-
-    def check_thread_create(
+    def check_review_start(
         self,
         user_id: int,
         *,
@@ -107,23 +81,25 @@ class RateLimitStore:
     ) -> tuple[bool, str | None]:
         ts = now or now_ts()
         user = self._user(user_id)
-        last = float(user.get("last_thread_create") or 0.0)
+        last = float(user.get("last_review_start") or 0.0)
         if cooldown_seconds > 0 and last and ts - last < cooldown_seconds:
-            return False, f"Please wait {format_wait(cooldown_seconds - (ts - last))} before starting another review thread."
+            return False, f"Please wait {format_wait(cooldown_seconds - (ts - last))} before starting another review."
 
-        recent = self._recent(list(user.get("thread_creates", [])), 3600, ts)
-        user["thread_creates"] = recent
+        starts = list(user.get("review_starts", []))
+        recent = self._recent(starts, 3600, ts)
+        user["review_starts"] = recent
         if max_per_hour > 0 and len(recent) >= max_per_hour:
             oldest = min(recent)
-            return False, f"You have hit the review-thread hourly limit. Try again in {format_wait(3600 - (ts - oldest))}."
+            return False, f"You have hit the review hourly limit. Try again in {format_wait(3600 - (ts - oldest))}."
         self._save()
         return True, None
 
-    def record_thread_create(self, user_id: int, now: float | None = None) -> None:
+    def record_review_start(self, user_id: int, now: float | None = None) -> None:
         ts = now or now_ts()
         user = self._user(user_id)
-        recent = self._recent(list(user.get("thread_creates", [])), 3600, ts)
+        starts = list(user.get("review_starts", []))
+        recent = self._recent(starts, 3600, ts)
         recent.append(ts)
-        user["thread_creates"] = recent
-        user["last_thread_create"] = ts
+        user["review_starts"] = recent
+        user["last_review_start"] = ts
         self._save()

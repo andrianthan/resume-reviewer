@@ -25,7 +25,7 @@ def main() -> None:
                 "description": (
                     "Click **Review my resume** to get scored feedback on your resume.\n\n"
                     "• 4 majors supported: consulting, marketing, ops-hr, supply-chain\n"
-                    "• Sophomore / Junior / Senior / etc. calibration\n"
+                    "• Feedback is sent privately by DM\n"
                     "• Evidence per category — not just a number\n"
                     "🔒 Resume deleted after review."
                 ),

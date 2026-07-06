@@ -35,7 +35,7 @@ import discord
 from discord import Interaction
 
 from .evaluator import evaluate
-from .rate_limit import RateLimitStore, format_wait, now_ts
+from .rate_limit import RateLimitStore
 from .rubric_loader import list_majors
 from .state import SessionStore, Stage, UserSession
 
@@ -55,10 +55,14 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
-MAX_OPEN_THREADS_PER_USER = _env_int("MAX_OPEN_THREADS_PER_USER", 5)
-THREAD_CREATE_COOLDOWN_SECONDS = _env_int("THREAD_CREATE_COOLDOWN_SECONDS", 30)
-MAX_THREAD_CREATES_PER_HOUR = _env_int("MAX_THREAD_CREATES_PER_HOUR", 10)
-REVIEW_THREAD_TTL_SECONDS = _env_int("REVIEW_THREAD_TTL_SECONDS", 1800)
+START_REVIEW_COOLDOWN_SECONDS = _env_int(
+    "START_REVIEW_COOLDOWN_SECONDS",
+    _env_int("THREAD_CREATE_COOLDOWN_SECONDS", 30),
+)
+MAX_REVIEW_STARTS_PER_HOUR = _env_int(
+    "MAX_REVIEW_STARTS_PER_HOUR",
+    _env_int("MAX_THREAD_CREATES_PER_HOUR", 10),
+)
 
 # If RESUME_API_URL is set, route PDF processing through AWS Lambda.
 # Otherwise, fall back to local evaluate() (deterministic-only without OpenRouter).
@@ -94,35 +98,6 @@ def _clip(text: object, limit: int) -> str:
     return value[: max(0, limit - 1)].rstrip() + "…"
 
 
-async def _fetch_thread(thread_id: int) -> discord.Thread | None:
-    try:
-        channel = await _get_client().fetch_channel(thread_id)  # type: ignore[attr-defined]
-    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
-        return None
-    return channel if isinstance(channel, discord.Thread) else None
-
-
-async def _prune_user_open_threads(user_id: int) -> dict[int, float]:
-    """Drop deleted/expired threads from the persisted open-thread set."""
-    now = now_ts()
-    kept: dict[int, float] = {}
-    for thread_id, created_at in RATE_LIMITS.get_open_threads(user_id).items():
-        thread = await _fetch_thread(thread_id)
-        expired = REVIEW_THREAD_TTL_SECONDS > 0 and now - created_at >= REVIEW_THREAD_TTL_SECONDS
-        if thread is None:
-            continue
-        if expired:
-            try:
-                await thread.delete(reason="Resume review thread TTL cleanup")
-                log.info("ttl-deleted thread %s for user_id=%s", thread_id, user_id)
-            except (discord.NotFound, discord.HTTPException) as e:
-                log.warning("ttl cleanup failed for thread %s: %r", thread_id, e)
-            continue
-        kept[thread_id] = created_at
-    RATE_LIMITS.replace_open_threads(user_id, kept)
-    return kept
-
-
 # ---------- View / Components ----------
 
 class StartReviewView(discord.ui.View):
@@ -140,7 +115,7 @@ class StartReviewView(discord.ui.View):
     async def start_btn(
         self, interaction: Interaction, _: discord.ui.Button
     ) -> None:
-        await _begin_thread_flow(interaction)
+        await _begin_dm_flow(interaction)
 
 
 class MajorPickerView(discord.ui.View):
@@ -172,7 +147,7 @@ class _MajorButton(discord.ui.Button):
         sess: UserSession = _get_client()._store.get(interaction.user.id)  # type: ignore[attr-defined]
         if sess.stage != Stage.AWAITING_MAJOR:
             await interaction.response.send_message(
-                "This review is no longer waiting for a major. Start a new review thread if needed.",
+                "This review is no longer waiting for a major. Click the panel button to start a new review if needed.",
                 ephemeral=True,
             )
             return
@@ -204,145 +179,77 @@ class YearPickerView(discord.ui.View):
         self.user_id = user_id
 
 
-# ---------- Thread flow (private, in-channel) ----------
+# ---------- DM flow ----------
 
-async def _begin_thread_flow(interaction: Interaction) -> None:
-    """Click handler: create a private thread in the channel for this user.
-
-    Replaces the DM flow. The thread is created with `private=True` so only
-    the inviter + the bot can see it. The user uploads the PDF inside the
-    thread; the bot processes + posts the scored review in the same thread.
-    Channel stays clean; no DMs required.
-    """
+async def _begin_dm_flow(interaction: Interaction) -> None:
+    """Click handler: open a DM and ask the user to upload their PDF."""
     user = interaction.user
     bot = _get_client()
     sess = bot._store.get(user.id)  # type: ignore[attr-defined]
 
-    channel = interaction.channel
-    if not isinstance(channel, discord.TextChannel):
-        await interaction.response.send_message(
-            "Run this in a text channel, not a DM.",
-            ephemeral=True,
-        )
-        return
-
     # Acknowledge the click first (must respond within 3s of interaction)
     await interaction.response.defer(ephemeral=True)
 
-    open_threads = await _prune_user_open_threads(user.id)
-
-    # One active upload session at a time. Completed review threads may remain
-    # open until cleanup/deletion, but uploads share one per-user session.
-    if sess.stage == Stage.AWAITING_RESUME and sess.thread_id:
-        thread = await _fetch_thread(sess.thread_id)
-        if thread:
-            await interaction.followup.send(
-                f"🧵 You already have an open upload thread. Continue there: {thread.jump_url}",
-                ephemeral=True,
-            )
-            return
-        RATE_LIMITS.remove_open_thread(user.id, sess.thread_id)
-        sess.thread_id = None
-        sess.stage = Stage.IDLE
-
-    if MAX_OPEN_THREADS_PER_USER > 0 and len(open_threads) >= MAX_OPEN_THREADS_PER_USER:
+    if sess.stage in {Stage.AWAITING_RESUME, Stage.AWAITING_MAJOR, Stage.REVIEWING}:
         await interaction.followup.send(
-            (
-                f"You already have {len(open_threads)} open review threads. "
-                "Wait for auto-cleanup before opening another."
-            ),
+            "You already have a resume review in progress. Check your DMs with me to continue.",
             ephemeral=True,
         )
         return
 
-    allowed, message = RATE_LIMITS.check_thread_create(
+    allowed, message = RATE_LIMITS.check_review_start(
         user.id,
-        cooldown_seconds=THREAD_CREATE_COOLDOWN_SECONDS,
-        max_per_hour=MAX_THREAD_CREATES_PER_HOUR,
+        cooldown_seconds=START_REVIEW_COOLDOWN_SECONDS,
+        max_per_hour=MAX_REVIEW_STARTS_PER_HOUR,
     )
     if not allowed:
         await interaction.followup.send(message, ephemeral=True)
         return
 
-    thread_name = f"📄 {user.display_name}'s review"
     try:
-        thread = await channel.create_thread(
-            name=thread_name[:100],
-            type=discord.ChannelType.private_thread,
-            auto_archive_duration=60,
-            reason=f"Resume review for {user}",
+        dm = await user.create_dm()
+        await dm.send(
+            embed=discord.Embed(
+                title="📄 Upload your resume",
+                description=(
+                    "Send your **PDF** resume in this DM (max 5 MB).\n"
+                    "After upload, you'll pick your major and get a scored review here.\n\n"
+                    "🔒 Your resume is processed in-memory and discarded after the review."
+                ),
+                color=EMBED_COLOR_PRIMARY,
+            )
         )
     except discord.Forbidden:
         await interaction.followup.send(
-            "I don't have permission to create threads here. Ask an admin to grant `Create Private Threads`.",
+            "I couldn't DM you. Enable DMs from server members, then click **Review my resume** again.",
             ephemeral=True,
         )
         return
     except discord.HTTPException as e:
-        log.exception("create_thread failed: %s", e)
-        await interaction.followup.send(f"Couldn't create thread: {e}", ephemeral=True)
+        log.exception("create_dm failed: %s", e)
+        await interaction.followup.send(f"Couldn't open a DM: {e}", ephemeral=True)
         return
 
-    # Add the user to the thread (private threads auto-add the inviter)
-    try:
-        await thread.add_user(user)
-    except Exception:
-        pass
-
-    sess.thread_id = thread.id
+    sess.resume_bytes = None
+    sess.resume_filename = None
+    sess.major = None
+    sess.class_year = None
+    sess.error = None
+    sess.dm_channel_id = dm.id
     sess.stage = Stage.AWAITING_RESUME
-    RATE_LIMITS.record_thread_create(user.id)
-    RATE_LIMITS.add_open_thread(user.id, thread.id)
-    log.info("Created thread %s for user_id=%s", thread.id, user.id)
+    RATE_LIMITS.record_review_start(user.id)
+    log.info("Started DM review flow for user_id=%s dm_channel_id=%s", user.id, dm.id)
 
-    await thread.send(
-        embed=discord.Embed(
-            title="📄 Upload your resume",
-            description=(
-                "Drop your **PDF** resume here (max 5 MB).\n"
-                "After upload, you'll pick your major and get a scored review.\n\n"
-                "🔒 Your resume is processed in-memory and discarded after the review.\n"
-                + (
-                    f"⏰ **This thread auto-deletes in {format_wait(REVIEW_THREAD_TTL_SECONDS)}.** Save anything you want to keep."
-                    if REVIEW_THREAD_TTL_SECONDS > 0
-                    else "This thread will stay open until a moderator deletes it."
-                )
-            ),
-            color=EMBED_COLOR_PRIMARY,
-        )
-    )
-
-    # Schedule auto-deletion after the TTL. Discord doesn't have native
-    # delete-after-time, so we archive + delete via a delayed background task.
-    async def _auto_delete(tid: int, uid: int) -> None:
-        try:
-            await asyncio.sleep(REVIEW_THREAD_TTL_SECONDS)
-            chan = await _fetch_thread(tid)
-            if chan:
-                await chan.delete(reason="Resume review thread auto-cleanup")
-                log.info("auto-deleted thread %s", tid)
-            RATE_LIMITS.remove_open_thread(uid, tid)
-        except Exception as e:  # noqa: BLE001
-            log.warning("auto-delete failed for thread %s: %r", tid, e)
-
-    if REVIEW_THREAD_TTL_SECONDS > 0:
-        asyncio.create_task(_auto_delete(thread.id, user.id))
-
-    cleanup_note = (
-        f"auto-deletes in {format_wait(REVIEW_THREAD_TTL_SECONDS)}"
-        if REVIEW_THREAD_TTL_SECONDS > 0
-        else "delete it when done"
-    )
     await interaction.followup.send(
-        f"🧵 Started a private thread: {thread.jump_url} _({cleanup_note})_",
+        "✅ I sent you a DM. Upload your resume there to continue.",
         ephemeral=True,
     )
 
 
-async def _on_thread_message(message: discord.Message, sess: "UserSession") -> None:
-    """Handle PDF uploads inside a private thread."""
+async def _on_dm_message(message: discord.Message, sess: "UserSession") -> None:
+    """Handle PDF uploads inside a DM."""
     log.info(
-        "thread msg from %s (%s): stage=%s attachments=%d",
+        "dm msg from %s (%s): stage=%s attachments=%d",
         message.author,
         message.author.id,
         sess.stage,
@@ -365,7 +272,7 @@ async def _on_thread_message(message: discord.Message, sess: "UserSession") -> N
     if not message.attachments:
         await message.channel.send(
             embed=discord.Embed(
-                description="Please attach a **PDF** resume to this thread.",
+                description="Please attach a **PDF** resume in this DM.",
                 color=EMBED_COLOR_WARN,
             )
         )
@@ -506,36 +413,34 @@ async def _run_review(interaction: Interaction, sess: UserSession) -> None:
             inline=False,
         )
 
-    # Post into the private thread the user owns (not DM, not channel). If
-    # Discord rejects the embed, do not claim success silently.
-    posted_to_thread = False
+    # Post the review in the user's DM. If Discord rejects the embed, do not
+    # claim success silently.
+    posted_to_dm = False
     post_error: str | None = None
-    if sess.thread_id:
+    if sess.dm_channel_id:
         try:
-            thread = await _get_client().fetch_channel(sess.thread_id)  # type: ignore[attr-defined]
-            if isinstance(thread, discord.Thread):
-                await thread.send(embed=embed)
-                posted_to_thread = True
+            channel = await _get_client().fetch_channel(sess.dm_channel_id)  # type: ignore[attr-defined]
+            if isinstance(channel, discord.DMChannel):
+                await channel.send(embed=embed)
+                posted_to_dm = True
             else:
-                post_error = f"Fetched channel was {type(thread).__name__}, not Thread"
-                log.warning("review post skipped for thread_id=%s: %s", sess.thread_id, post_error)
+                post_error = f"Fetched channel was {type(channel).__name__}, not DMChannel"
+                log.warning("review post skipped for dm_channel_id=%s: %s", sess.dm_channel_id, post_error)
         except (discord.NotFound, discord.HTTPException) as e:
             post_error = repr(e)
-            log.exception("failed to post review embed to thread_id=%s", sess.thread_id)
+            log.exception("failed to post review embed to dm_channel_id=%s", sess.dm_channel_id)
     else:
-        post_error = "session had no thread_id"
+        post_error = "session had no dm_channel_id"
 
-    # Also keep an ephemeral confirmation in the channel (visible to nobody but user).
-    if posted_to_thread:
-        await interaction.followup.send("✅ Done. Check your review thread.", ephemeral=True)
+    if posted_to_dm:
+        await interaction.followup.send("✅ Done. Your review is posted above.")
     else:
         await interaction.followup.send(
             content=(
-                "⚠️ I generated the review, but couldn't post it in the thread. "
+                "⚠️ I generated the review, but couldn't post it in DM. "
                 f"Showing it here instead. `{post_error}`"
             ),
             embed=embed,
-            ephemeral=True,
         )
 
     # Cleanup
@@ -593,7 +498,7 @@ async def _post_panel(bot: discord.Client, channel_id: int) -> None:
             f"• {len(MAJORS)} majors supported: " + ", ".join(MAJORS) + "\n"
             "• Same scoring standard for all class years (internship review)\n"
             "• Evidence per category — not just a number\n"
-            "🔒 Resume deleted after review."
+            "🔒 Feedback is delivered privately by DM."
         ),
         color=EMBED_COLOR_PRIMARY,
     )
@@ -657,18 +562,17 @@ def make_client() -> discord.Client:
         if len(seen) > 1000:
             client._seen_msg_ids = set(list(seen)[-500:])  # type: ignore[attr-defined]
 
-        # Only handle messages inside a private thread created by our flow.
-        if not isinstance(message.channel, discord.Thread):
-            return
-        if message.channel.type != discord.ChannelType.private_thread:
-            return
         if message.author.bot:
             return
-        # Only react to messages from the user who owns the thread.
-        sess = client._store.get(message.author.id)  # type: ignore[attr-defined]
-        if sess.thread_id != message.channel.id:
+        if message.guild is not None:
             return
-        await _on_thread_message(message, sess)
+        if not isinstance(message.channel, discord.DMChannel):
+            return
+
+        sess = client._store.get(message.author.id)  # type: ignore[attr-defined]
+        if sess.dm_channel_id and sess.dm_channel_id != message.channel.id:
+            return
+        await _on_dm_message(message, sess)
 
     return client
 

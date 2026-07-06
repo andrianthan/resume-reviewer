@@ -1,18 +1,17 @@
 # resume-reviewer
 
-Discord bot that scores resumes against major-specific rubrics. Click a button → private thread → upload PDF → pick major → scored embed back.
+Discord bot that scores resumes against major-specific rubrics. Click a button → bot DMs the member → member uploads PDF → picks major → scored embed stays in DM.
 
 **Status:** code complete, tested, ready to deploy. Needs Discord bot token + optional OpenRouter key + a channel to test in.
 
 ## Flow
 
 1. Bot posts a persistent embed with **Review my resume** button in your chosen channel.
-2. Member clicks → bot creates a private review thread.
-3. Member uploads PDF (max 5 MB) in that thread.
+2. Member clicks → bot sends them a DM.
+3. Member uploads PDF (max 5 MB) in that DM.
 4. Bot asks for major (consulting / finance / marketing / ops-hr / supply-chain / tech).
-5. Bot runs evaluator + posts scored embed to the thread with per-category evidence + suggestions.
-6. Review thread auto-deletes after 30 minutes.
-7. Resume bytes zeroed in memory immediately after review.
+5. Bot runs evaluator + posts scored embed in the DM with per-category evidence + suggestions.
+6. Resume bytes zeroed in memory immediately after review.
 
 ## Setup
 
@@ -67,10 +66,8 @@ Defaults are intentionally conservative:
 
 | Variable | Default |
 | --- | ---: |
-| `MAX_OPEN_THREADS_PER_USER` | `5` |
-| `THREAD_CREATE_COOLDOWN_SECONDS` | `30` |
-| `MAX_THREAD_CREATES_PER_HOUR` | `10` |
-| `REVIEW_THREAD_TTL_SECONDS` | `1800` |
+| `START_REVIEW_COOLDOWN_SECONDS` | `30` |
+| `MAX_REVIEW_STARTS_PER_HOUR` | `10` |
 
 Set a limit to `0` to disable it. Runtime counters live in `data/rate_limits.json`.
 
@@ -81,7 +78,7 @@ source .venv/bin/activate
 python -m pytest tests/ -v
 ```
 
-Tests cover rubric loading, skill extraction, thread rate limits, and deterministic evaluation across all majors.
+Tests cover rubric loading, skill extraction, start-flow rate limits, and deterministic evaluation across all majors.
 
 ## Rubric packs
 
@@ -101,7 +98,7 @@ Tests cover rubric loading, skill extraction, thread rate limits, and determinis
 ```
 src/
   __init__.py
-  bot.py            # Discord client + private-thread flow
+  bot.py            # Discord client + DM upload/review flow
   evaluator.py      # PDF→text, skill match, domain/year adjust, scoring
   pdf_extract.py    # PyMuPDF wrapper
   llm_judge.py      # OpenRouter per-category judge (optional)
