@@ -60,6 +60,26 @@ python -m src.bot
 
 Bot logs in, posts the panel embed in your channel. Click button to test the flow.
 
+### Update Windows service
+
+On the Windows bot host, pull the latest code and restart the service:
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+C:\services\resume-reviewer\deploy\update-windows.ps1
+```
+
+Manual equivalent:
+
+```powershell
+cd C:\services\resume-reviewer
+Stop-Service ResumeReviewer
+git pull --ff-only
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Start-Service ResumeReviewer
+Get-Content .\logs\service.out.log -Wait
+```
+
 ### Rate limits
 
 Defaults are intentionally conservative:

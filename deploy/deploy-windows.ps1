@@ -18,6 +18,9 @@
   After first run, edit C:\services\resume-reviewer\.env to add DISCORD_BOT_TOKEN,
   REVIEW_CHANNEL_ID, etc., then:
     Restart-Service ResumeReviewer
+
+  For later code updates, run:
+    C:\services\resume-reviewer\deploy\update-windows.ps1
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -136,5 +139,6 @@ Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Edit $EnvPath with your DISCORD_BOT_TOKEN + REVIEW_CHANNEL_ID"
 Write-Host "  2. Restart-Service $ServiceName"
-Write-Host "  3. Tail logs: Get-Content (Join-Path $InstallDir 'logs\service.out.log') -Wait"
-Write-Host "  4. Uninstall: & $NssmExe stop $ServiceName ; & $NssmExe remove $ServiceName confirm"
+Write-Host "  3. Later updates: $InstallDir\deploy\update-windows.ps1"
+Write-Host "  4. Tail logs: Get-Content (Join-Path $InstallDir 'logs\service.out.log') -Wait"
+Write-Host "  5. Uninstall: & $NssmExe stop $ServiceName ; & $NssmExe remove $ServiceName confirm"
