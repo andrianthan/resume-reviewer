@@ -83,6 +83,11 @@ RATE_LIMITS = RateLimitStore(Path(__file__).resolve().parent.parent / "data" / "
 # lookups that have been the source of multiple crashes in this flow.
 _CLIENT: discord.Client | None = None
 
+# Track the panel message we posted per channel so we can react to it on
+# every review start. Keeps a live use-count visible without needing a DB.
+_PANEL_MESSAGE_IDS: dict[int, int] = {}  # channel_id -> message_id
+_USAGE_EMOJI = "📝"
+
 
 def _get_client() -> discord.Client:
     if _CLIENT is None:
@@ -239,6 +244,17 @@ async def _begin_dm_flow(interaction: Interaction) -> None:
     sess.stage = Stage.AWAITING_RESUME
     RATE_LIMITS.record_review_start(user.id)
     log.info("Started DM review flow for user_id=%s dm_channel_id=%s", user.id, dm.id)
+
+    # Tally use: react on the panel message so the channel shows a live count.
+    panel_msg_id = _PANEL_MESSAGE_IDS.get(REVIEW_CHANNEL_ID)
+    if panel_msg_id:
+        try:
+            panel_channel = bot.get_channel(REVIEW_CHANNEL_ID)
+            if isinstance(panel_channel, discord.TextChannel):
+                panel_msg = await panel_channel.fetch_message(panel_msg_id)
+                await panel_msg.add_reaction(_USAGE_EMOJI)
+        except (discord.NotFound, discord.HTTPException) as e:
+            log.warning("panel reaction skipped: %s", e)
 
     await interaction.followup.send(
         "✅ I sent you a DM. Upload your resume there to continue.",
@@ -518,6 +534,7 @@ async def _post_panel(bot: discord.Client, channel_id: int) -> None:
         try:
             msg = await channel.fetch_message(int(existing_id))
             await msg.edit(embed=embed, view=view)
+            _PANEL_MESSAGE_IDS[channel_id] = msg.id
             log.info("Edited existing panel msg=%s in #%s", existing_id, channel)
             return
         except (discord.NotFound, discord.HTTPException):
@@ -526,6 +543,7 @@ async def _post_panel(bot: discord.Client, channel_id: int) -> None:
     msg = await channel.send(embed=embed, view=view)
     state[str(channel_id)] = msg.id
     state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+    _PANEL_MESSAGE_IDS[channel_id] = msg.id
     log.info("Posted new panel msg=%s in #%s", msg.id, channel)
 
 

@@ -25,6 +25,16 @@ def test_begin_dm_flow_sends_upload_prompt_and_sets_session(tmp_path: Path) -> N
     fake_client = _install_fake_client()
     old_rate_limits = bot_mod.RATE_LIMITS
     bot_mod.RATE_LIMITS = RateLimitStore(tmp_path / "rate_limits.json")
+
+    # Set up panel reaction channel so the new reaction code path runs.
+    import discord as _discord
+    panel_channel = MagicMock(spec=_discord.TextChannel)
+    panel_msg = MagicMock()
+    panel_msg.add_reaction = AsyncMock()
+    panel_channel.fetch_message = AsyncMock(return_value=panel_msg)
+    fake_client.get_channel = MagicMock(return_value=panel_channel)
+    bot_mod._PANEL_MESSAGE_IDS[bot_mod.REVIEW_CHANNEL_ID] = 999
+
     user = MagicMock()
     user.id = 123
     dm = MagicMock()
@@ -43,12 +53,14 @@ def test_begin_dm_flow_sends_upload_prompt_and_sets_session(tmp_path: Path) -> N
     assert sess.stage == Stage.AWAITING_RESUME
     assert sess.dm_channel_id == dm.id
     dm.send.assert_awaited_once()
+    panel_msg.add_reaction.assert_awaited_once_with("📝")
     interaction.followup.send.assert_awaited_with(
         "✅ I sent you a DM. Upload your resume there to continue.",
         ephemeral=True,
     )
     bot_mod.RATE_LIMITS = old_rate_limits
     bot_mod._CLIENT = None
+    bot_mod._PANEL_MESSAGE_IDS.clear()
 
 
 def test_on_dm_message_reads_pdf_and_prompts_for_major() -> None:
