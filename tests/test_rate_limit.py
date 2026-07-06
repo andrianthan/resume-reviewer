@@ -68,28 +68,3 @@ def test_thread_create_cooldown_and_hourly_limit(tmp_path: Path) -> None:
     )
     assert not ok
     assert "hourly limit" in (msg or "")
-
-
-def test_review_hourly_and_daily_limits(tmp_path: Path) -> None:
-    store = RateLimitStore(tmp_path / "rate_limits.json")
-    user_id = 7
-    store.record_review_run(user_id, now=100)
-    store.record_review_run(user_id, now=200)
-
-    ok, msg = store.check_review_run(
-        user_id,
-        max_per_hour=2,
-        max_per_day=10,
-        now=300,
-    )
-    assert not ok
-    assert "hourly limit" in (msg or "")
-
-    ok, msg = store.check_review_run(
-        user_id,
-        max_per_hour=2,
-        max_per_day=2,
-        now=3701,
-    )
-    assert not ok
-    assert "daily review limit" in (msg or "")

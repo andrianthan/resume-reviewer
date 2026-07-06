@@ -70,8 +70,6 @@ Defaults are intentionally conservative:
 | `MAX_OPEN_THREADS_PER_USER` | `5` |
 | `THREAD_CREATE_COOLDOWN_SECONDS` | `30` |
 | `MAX_THREAD_CREATES_PER_HOUR` | `10` |
-| `MAX_REVIEWS_PER_HOUR` | `5` |
-| `MAX_REVIEWS_PER_DAY` | `20` |
 | `REVIEW_THREAD_TTL_SECONDS` | `1800` |
 
 Set a limit to `0` to disable it. Runtime counters live in `data/rate_limits.json`.
@@ -83,7 +81,7 @@ source .venv/bin/activate
 python -m pytest tests/ -v
 ```
 
-Tests cover rubric loading, skill extraction, rate limits, and deterministic evaluation across all majors.
+Tests cover rubric loading, skill extraction, thread rate limits, and deterministic evaluation across all majors.
 
 ## Rubric packs
 

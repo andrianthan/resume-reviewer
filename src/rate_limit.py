@@ -56,7 +56,6 @@ class RateLimitStore:
         user = users.setdefault(str(user_id), {})
         user.setdefault("open_threads", {})
         user.setdefault("thread_creates", [])
-        user.setdefault("review_runs", [])
         user.setdefault("last_thread_create", 0.0)
         return user
 
@@ -127,35 +126,4 @@ class RateLimitStore:
         recent.append(ts)
         user["thread_creates"] = recent
         user["last_thread_create"] = ts
-        self._save()
-
-    def check_review_run(
-        self,
-        user_id: int,
-        *,
-        max_per_hour: int,
-        max_per_day: int,
-        now: float | None = None,
-    ) -> tuple[bool, str | None]:
-        ts = now or now_ts()
-        user = self._user(user_id)
-        recent_day = self._recent(list(user.get("review_runs", [])), 86400, ts)
-        user["review_runs"] = recent_day
-        if max_per_hour > 0:
-            recent_hour = self._recent(recent_day, 3600, ts)
-            if len(recent_hour) >= max_per_hour:
-                oldest = min(recent_hour)
-                return False, f"You have hit the review hourly limit. Try again in {format_wait(3600 - (ts - oldest))}."
-        if max_per_day > 0 and len(recent_day) >= max_per_day:
-            oldest = min(recent_day)
-            return False, f"You have hit the daily review limit. Try again in {format_wait(86400 - (ts - oldest))}."
-        self._save()
-        return True, None
-
-    def record_review_run(self, user_id: int, now: float | None = None) -> None:
-        ts = now or now_ts()
-        user = self._user(user_id)
-        recent = self._recent(list(user.get("review_runs", [])), 86400, ts)
-        recent.append(ts)
-        user["review_runs"] = recent
         self._save()

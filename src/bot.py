@@ -58,8 +58,6 @@ def _env_int(name: str, default: int) -> int:
 MAX_OPEN_THREADS_PER_USER = _env_int("MAX_OPEN_THREADS_PER_USER", 5)
 THREAD_CREATE_COOLDOWN_SECONDS = _env_int("THREAD_CREATE_COOLDOWN_SECONDS", 30)
 MAX_THREAD_CREATES_PER_HOUR = _env_int("MAX_THREAD_CREATES_PER_HOUR", 10)
-MAX_REVIEWS_PER_HOUR = _env_int("MAX_REVIEWS_PER_HOUR", 5)
-MAX_REVIEWS_PER_DAY = _env_int("MAX_REVIEWS_PER_DAY", 20)
 REVIEW_THREAD_TTL_SECONDS = _env_int("REVIEW_THREAD_TTL_SECONDS", 1800)
 
 # If RESUME_API_URL is set, route PDF processing through AWS Lambda.
@@ -178,16 +176,6 @@ class _MajorButton(discord.ui.Button):
                 ephemeral=True,
             )
             return
-
-        allowed, message = RATE_LIMITS.check_review_run(
-            interaction.user.id,
-            max_per_hour=MAX_REVIEWS_PER_HOUR,
-            max_per_day=MAX_REVIEWS_PER_DAY,
-        )
-        if not allowed:
-            await interaction.response.send_message(message, ephemeral=True)
-            return
-        RATE_LIMITS.record_review_run(interaction.user.id)
 
         sess.major = self.major
         # No year picker — bot scores uniformly across class years.
